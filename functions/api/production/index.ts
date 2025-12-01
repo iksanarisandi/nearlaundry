@@ -18,7 +18,7 @@ app.post('/', async (c) => {
     return c.json({ message: 'Nomor nota wajib diisi' }, 400);
   }
 
-  if (!process || !['cuci','kering','setrika','packing'].includes(process)) {
+  if (!process || !['cuci','kering','setrika','packing','cuci_sepatu','cuci_satuan'].includes(process)) {
     return c.json({ message: 'Proses tidak valid' }, 400);
   }
 

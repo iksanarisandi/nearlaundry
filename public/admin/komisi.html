@@ -1,0 +1,101 @@
+<!doctype html>
+<html lang="id" class="h-full">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>Atur Komisi - NearMe Laundry</title>
+  <link rel="stylesheet" href="/styles.css" />
+  <script src="/shared/nav.js" defer></script>
+</head>
+<body class="min-h-full flex flex-col bg-slate-100" onload="NearMeNav.ensureRole(['admin'])">
+  <header class="bg-white shadow-sm">
+    <div class="mx-auto max-w-5xl px-4 py-3 flex items-center justify-between">
+      <div class="flex items-center gap-3">
+        <img src="/icon.JPG" alt="Logo" class="h-8 w-8 rounded-full object-cover" />
+        <div>
+          <div class="font-semibold text-primary text-sm">NearMe Laundry - Admin</div>
+          <div class="text-[11px] text-slate-500">Atur Komisi per Kg</div>
+        </div>
+      </div>
+      <nav class="flex items-center gap-3 text-[11px] text-slate-600">
+        <a href="/admin/dashboard.html">Dashboard</a>
+        <a href="/admin/payroll-v2.html">Payroll</a>
+        <a href="/admin/komisi.html" class="text-primary font-semibold">Komisi</a>
+        <a href="/admin/stok.html">Stok</a>
+        <a href="/admin/outlet.html">Outlet</a>
+        <a href="/admin/users.html">User</a>
+        <button onclick="NearMeNav.logout()" class="ml-2 text-red-500">Keluar</button>
+      </nav>
+    </div>
+  </header>
+
+  <main class="flex-1 mx-auto w-full max-w-md px-4 py-4">
+    <div class="card">
+      <h1 class="text-base font-semibold mb-1">Atur Komisi per Kg</h1>
+      <p class="text-xs text-slate-500 mb-4">Tentukan besaran komisi untuk setiap proses produksi.</p>
+      
+      <div id="rates-list" class="space-y-3"></div>
+      
+      <p id="status" class="text-xs text-slate-600 mt-4"></p>
+    </div>
+  </main>
+
+  <script>
+    function getToken() { return localStorage.getItem('token'); }
+    
+    const processLabels = {
+      cuci: '🧺 Cuci',
+      kering: '☀️ Keringkan',
+      setrika: '👔 Setrika',
+      packing: '📦 Packing',
+      cuci_sepatu: '👟 Cuci Sepatu',
+      cuci_satuan: '👕 Cuci Satuan'
+    };
+
+    async function loadRates() {
+      const res = await fetch('/api/admin/commission', {
+        headers: { 'Authorization': 'Bearer ' + getToken() }
+      });
+      const data = await res.json();
+      
+      const container = document.getElementById('rates-list');
+      container.innerHTML = '';
+      
+      data.forEach(r => {
+        const div = document.createElement('div');
+        div.className = 'flex items-center justify-between p-3 bg-slate-50 rounded-lg';
+        div.innerHTML = `
+          <div>
+            <div class="text-sm font-medium">${processLabels[r.process] || r.process}</div>
+            <div class="text-[10px] text-slate-500">Proses: ${r.process}</div>
+          </div>
+          <div class="flex items-center gap-2">
+            <span class="text-xs text-slate-500">Rp</span>
+            <input type="number" id="rate_${r.process}" value="${r.rate_per_kg}" 
+                   class="w-24 rounded border px-2 py-1 text-sm text-right" min="0" />
+            <span class="text-xs text-slate-500">/kg</span>
+            <button onclick="saveRate('${r.process}')" class="text-xs text-accent underline ml-2">Simpan</button>
+          </div>
+        `;
+        container.appendChild(div);
+      });
+    }
+
+    async function saveRate(process) {
+      const rate = Number(document.getElementById('rate_' + process).value) || 0;
+      const statusEl = document.getElementById('status');
+      
+      const res = await fetch('/api/admin/commission/' + process, {
+        method: 'PUT',
+        headers: { 'Content-Type': 'application/json', 'Authorization': 'Bearer ' + getToken() },
+        body: JSON.stringify({ rate_per_kg: rate })
+      });
+      const data = await res.json();
+      statusEl.textContent = data.message;
+      statusEl.className = res.ok ? 'text-xs text-green-600 mt-4' : 'text-xs text-red-500 mt-4';
+    }
+
+    loadRates();
+  </script>
+</body>
+</html>

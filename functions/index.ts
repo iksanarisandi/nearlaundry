@@ -8,6 +8,10 @@ import revenueRoute from './api/admin/revenue';
 import attendanceAllRoute from './api/admin/attendance_all';
 import payrollRoute from './api/admin/payroll';
 import usersRoute from './api/admin/users';
+import outletsRoute from './api/admin/outlets';
+import commissionRoute from './api/admin/commission';
+import adminWarehouseRoute from './api/admin/warehouse';
+import payrollNewRoute from './api/admin/payroll-new';
 import productionRoute from './api/production/index';
 import attendanceRoute from './api/production/attendance';
 import expensesRoute from './api/production/expenses';
@@ -36,7 +40,11 @@ app.route('/api/dashboard', dashboardRoute);
 app.route('/api/revenue', revenueRoute);
 app.route('/api/attendance/all', attendanceAllRoute);
 app.route('/api/payroll', payrollRoute);
+app.route('/api/payroll-v2', payrollNewRoute);
 app.route('/api/admin/users', usersRoute);
+app.route('/api/admin/outlets', outletsRoute);
+app.route('/api/admin/commission', commissionRoute);
+app.route('/api/admin/warehouse', adminWarehouseRoute);
 
 // Production routes
 app.route('/api/production', productionRoute);

@@ -1,0 +1,184 @@
+<!doctype html>
+<html lang="id" class="h-full">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>Kelola Stok - NearMe Laundry</title>
+  <link rel="stylesheet" href="/styles.css" />
+  <script src="/shared/nav.js" defer></script>
+</head>
+<body class="min-h-full flex flex-col bg-slate-100" onload="NearMeNav.ensureRole(['admin'])">
+  <header class="bg-white shadow-sm">
+    <div class="mx-auto max-w-5xl px-4 py-3 flex items-center justify-between">
+      <div class="flex items-center gap-3">
+        <img src="/icon.JPG" alt="Logo" class="h-8 w-8 rounded-full object-cover" />
+        <div>
+          <div class="font-semibold text-primary text-sm">NearMe Laundry - Admin</div>
+          <div class="text-[11px] text-slate-500">Kelola Stok Gudang</div>
+        </div>
+      </div>
+      <nav class="flex items-center gap-3 text-[11px] text-slate-600">
+        <a href="/admin/dashboard.html">Dashboard</a>
+        <a href="/admin/omzet.html">Omzet</a>
+        <a href="/admin/payroll-v2.html">Payroll</a>
+        <a href="/admin/stok.html" class="text-primary font-semibold">Stok</a>
+        <a href="/admin/outlet.html">Outlet</a>
+        <a href="/admin/users.html">User</a>
+        <button onclick="NearMeNav.logout()" class="ml-2 text-red-500">Keluar</button>
+      </nav>
+    </div>
+  </header>
+
+  <main class="flex-1 mx-auto w-full max-w-5xl px-4 py-4">
+    <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
+      <!-- Master Barang -->
+      <div class="card">
+        <div class="flex justify-between items-center mb-3">
+          <h2 class="text-sm font-semibold">Master Barang</h2>
+          <button onclick="showItemForm()" class="text-xs text-accent underline">+ Tambah</button>
+        </div>
+        <div id="item-form" class="hidden mb-3 p-3 bg-slate-50 rounded-lg">
+          <form id="item-form-el" class="space-y-2">
+            <input type="hidden" id="item_id" />
+            <input type="text" id="item_name" placeholder="Nama barang" class="w-full rounded border px-2 py-1 text-sm" required />
+            <input type="number" id="item_qty" placeholder="Stok awal" class="w-full rounded border px-2 py-1 text-sm" />
+            <div class="flex gap-2">
+              <button type="submit" class="btn-secondary text-xs py-1">Simpan</button>
+              <button type="button" onclick="hideItemForm()" class="text-xs text-slate-500">Batal</button>
+            </div>
+          </form>
+        </div>
+        <table class="w-full text-xs">
+          <thead>
+            <tr class="text-left text-slate-500 border-b">
+              <th class="py-1">Nama</th>
+              <th class="py-1 text-right">Stok</th>
+              <th class="py-1 text-right">Aksi</th>
+            </tr>
+          </thead>
+          <tbody id="items-body" class="divide-y"></tbody>
+        </table>
+      </div>
+
+      <!-- Stok Masuk -->
+      <div class="card">
+        <h2 class="text-sm font-semibold mb-3">Tambah Stok Masuk</h2>
+        <form id="stock-in-form" class="space-y-3">
+          <div>
+            <label class="block text-xs text-slate-600 mb-1">Pilih Barang</label>
+            <select id="stock_item_id" class="w-full rounded-lg border px-3 py-2 text-sm" required>
+              <option value="">-- Pilih --</option>
+            </select>
+          </div>
+          <div>
+            <label class="block text-xs text-slate-600 mb-1">Jumlah Masuk</label>
+            <input type="number" id="stock_qty" min="1" class="w-full rounded-lg border px-3 py-2 text-sm" required />
+          </div>
+          <p id="stock-status" class="text-xs text-slate-600"></p>
+          <button type="submit" class="btn-primary text-sm">Tambah Stok</button>
+        </form>
+      </div>
+    </div>
+  </main>
+
+  <script>
+    function getToken() { return localStorage.getItem('token'); }
+
+    async function loadItems() {
+      const res = await fetch('/api/admin/warehouse/items', {
+        headers: { 'Authorization': 'Bearer ' + getToken() }
+      });
+      const data = await res.json();
+      
+      // Table
+      const body = document.getElementById('items-body');
+      body.innerHTML = '';
+      data.forEach(i => {
+        const tr = document.createElement('tr');
+        tr.innerHTML = `
+          <td class="py-1">${i.name}</td>
+          <td class="py-1 text-right">${i.qty}</td>
+          <td class="py-1 text-right">
+            <button onclick="editItem(${i.id}, '${i.name}', ${i.qty})" class="text-accent underline mr-1">Edit</button>
+            <button onclick="deleteItem(${i.id})" class="text-red-500 underline">Hapus</button>
+          </td>
+        `;
+        body.appendChild(tr);
+      });
+
+      // Select
+      const select = document.getElementById('stock_item_id');
+      select.innerHTML = '<option value="">-- Pilih --</option>';
+      data.forEach(i => {
+        select.innerHTML += `<option value="${i.id}">${i.name} (stok: ${i.qty})</option>`;
+      });
+    }
+
+    function showItemForm() { document.getElementById('item-form').classList.remove('hidden'); }
+    function hideItemForm() { 
+      document.getElementById('item-form').classList.add('hidden');
+      document.getElementById('item-form-el').reset();
+      document.getElementById('item_id').value = '';
+    }
+
+    function editItem(id, name, qty) {
+      showItemForm();
+      document.getElementById('item_id').value = id;
+      document.getElementById('item_name').value = name;
+      document.getElementById('item_qty').value = qty;
+    }
+
+    async function deleteItem(id) {
+      if (!confirm('Hapus barang ini?')) return;
+      await fetch('/api/admin/warehouse/items/' + id, {
+        method: 'DELETE',
+        headers: { 'Authorization': 'Bearer ' + getToken() }
+      });
+      loadItems();
+    }
+
+    document.getElementById('item-form-el').addEventListener('submit', async (e) => {
+      e.preventDefault();
+      const id = document.getElementById('item_id').value;
+      const payload = {
+        name: document.getElementById('item_name').value,
+        qty: Number(document.getElementById('item_qty').value) || 0
+      };
+      const url = id ? '/api/admin/warehouse/items/' + id : '/api/admin/warehouse/items';
+      const method = id ? 'PUT' : 'POST';
+      
+      await fetch(url, {
+        method,
+        headers: { 'Content-Type': 'application/json', 'Authorization': 'Bearer ' + getToken() },
+        body: JSON.stringify(payload)
+      });
+      hideItemForm();
+      loadItems();
+    });
+
+    document.getElementById('stock-in-form').addEventListener('submit', async (e) => {
+      e.preventDefault();
+      const statusEl = document.getElementById('stock-status');
+      const payload = {
+        item_id: Number(document.getElementById('stock_item_id').value),
+        qty: Number(document.getElementById('stock_qty').value)
+      };
+      
+      const res = await fetch('/api/admin/warehouse/stock-in', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json', 'Authorization': 'Bearer ' + getToken() },
+        body: JSON.stringify(payload)
+      });
+      const data = await res.json();
+      statusEl.textContent = data.message;
+      statusEl.className = res.ok ? 'text-xs text-green-600' : 'text-xs text-red-500';
+      if (res.ok) {
+        document.getElementById('stock-in-form').reset();
+        loadItems();
+      }
+    });
+
+    loadItems();
+  </script>
+</body>
+</html>

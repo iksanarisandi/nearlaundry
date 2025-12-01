@@ -84,7 +84,7 @@
     function getToken() { return localStorage.getItem('token'); }
     function formatRupiah(v) { return 'Rp ' + (v || 0).toLocaleString('id-ID'); }
 
-    const processLabels = { cuci: 'Cuci', kering: 'Keringkan', setrika: 'Setrika', packing: 'Packing' };
+    const processLabels = { cuci: 'Cuci', kering: 'Keringkan', setrika: 'Setrika', packing: 'Packing', cuci_sepatu: 'Cuci Sepatu', cuci_satuan: 'Cuci Satuan' };
 
     async function loadRiwayat(dateStr) {
       const statusEl = document.getElementById('status');
@@ -103,7 +103,7 @@
         const prodBody = document.getElementById('prod-body');
         prodBody.innerHTML = '';
         let totalWeight = 0, totalQty = 0;
-        const processCounts = { cuci: 0, kering: 0, setrika: 0, packing: 0 };
+        const processCounts = { cuci: 0, kering: 0, setrika: 0, packing: 0, cuci_sepatu: 0, cuci_satuan: 0 };
 
         (data.production || []).forEach((row) => {
           const tr = document.createElement('tr');
@@ -121,7 +121,7 @@
         });
 
         document.getElementById('prod-summary').innerHTML = data.production?.length
-          ? `Total: ${totalWeight.toFixed(1)} kg, ${totalQty} pcs | Cuci: ${processCounts.cuci}, Kering: ${processCounts.kering}, Setrika: ${processCounts.setrika}, Packing: ${processCounts.packing}`
+          ? `Total: ${totalWeight.toFixed(1)} kg, ${totalQty} pcs`
           : 'Belum ada data produksi';
 
         // Pengeluaran

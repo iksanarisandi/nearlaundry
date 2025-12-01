@@ -1,0 +1,152 @@
+<!doctype html>
+<html lang="id" class="h-full">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>Kelola Outlet - NearMe Laundry</title>
+  <link rel="stylesheet" href="/styles.css" />
+  <script src="/shared/nav.js" defer></script>
+</head>
+<body class="min-h-full flex flex-col bg-slate-100" onload="NearMeNav.ensureRole(['admin'])">
+  <header class="bg-white shadow-sm">
+    <div class="mx-auto max-w-5xl px-4 py-3 flex items-center justify-between">
+      <div class="flex items-center gap-3">
+        <img src="/icon.JPG" alt="Logo" class="h-8 w-8 rounded-full object-cover" />
+        <div>
+          <div class="font-semibold text-primary text-sm">NearMe Laundry - Admin</div>
+          <div class="text-[11px] text-slate-500">Kelola Outlet</div>
+        </div>
+      </div>
+      <nav class="flex items-center gap-3 text-[11px] text-slate-600">
+        <a href="/admin/dashboard.html">Dashboard</a>
+        <a href="/admin/omzet.html">Omzet</a>
+        <a href="/admin/payroll-v2.html">Payroll</a>
+        <a href="/admin/stok.html">Stok</a>
+        <a href="/admin/outlet.html" class="text-primary font-semibold">Outlet</a>
+        <a href="/admin/users.html">User</a>
+        <button onclick="NearMeNav.logout()" class="ml-2 text-red-500">Keluar</button>
+      </nav>
+    </div>
+  </header>
+
+  <main class="flex-1 mx-auto w-full max-w-5xl px-4 py-4">
+    <div class="flex justify-between items-center mb-4">
+      <h1 class="text-lg font-semibold">Daftar Outlet</h1>
+      <button onclick="showForm()" class="btn-secondary text-xs px-3 py-1">+ Tambah Outlet</button>
+    </div>
+
+    <div id="form-card" class="card mb-4 hidden">
+      <h2 id="form-title" class="text-sm font-semibold mb-3">Tambah Outlet</h2>
+      <form id="outlet-form" class="space-y-3">
+        <input type="hidden" id="outlet_id" />
+        <div>
+          <label class="block text-xs font-medium text-slate-600 mb-1">Nama Outlet *</label>
+          <input type="text" id="name" class="w-full rounded-lg border border-slate-200 px-3 py-2 text-sm" required />
+        </div>
+        <div>
+          <label class="block text-xs font-medium text-slate-600 mb-1">Alamat</label>
+          <input type="text" id="address" class="w-full rounded-lg border border-slate-200 px-3 py-2 text-sm" />
+        </div>
+        <p id="status" class="text-xs text-slate-600"></p>
+        <div class="flex gap-2">
+          <button type="submit" class="btn-primary text-sm">Simpan</button>
+          <button type="button" onclick="hideForm()" class="btn-secondary text-sm">Batal</button>
+        </div>
+      </form>
+    </div>
+
+    <div class="card">
+      <table class="w-full text-xs">
+        <thead>
+          <tr class="text-left text-slate-500 border-b">
+            <th class="py-2">ID</th>
+            <th class="py-2">Nama</th>
+            <th class="py-2">Alamat</th>
+            <th class="py-2 text-right">Aksi</th>
+          </tr>
+        </thead>
+        <tbody id="outlet-body" class="divide-y"></tbody>
+      </table>
+    </div>
+  </main>
+
+  <script>
+    function getToken() { return localStorage.getItem('token'); }
+
+    async function loadOutlets() {
+      const res = await fetch('/api/admin/outlets', {
+        headers: { 'Authorization': 'Bearer ' + getToken() }
+      });
+      const data = await res.json();
+      const body = document.getElementById('outlet-body');
+      body.innerHTML = '';
+      data.forEach(o => {
+        const tr = document.createElement('tr');
+        tr.innerHTML = `
+          <td class="py-2">${o.id}</td>
+          <td class="py-2">${o.name}</td>
+          <td class="py-2">${o.address || '-'}</td>
+          <td class="py-2 text-right">
+            <button onclick="editOutlet(${o.id}, '${o.name}', '${o.address || ''}')" class="text-accent underline mr-2">Edit</button>
+            <button onclick="deleteOutlet(${o.id})" class="text-red-500 underline">Hapus</button>
+          </td>
+        `;
+        body.appendChild(tr);
+      });
+    }
+
+    function showForm() {
+      document.getElementById('form-card').classList.remove('hidden');
+      document.getElementById('form-title').textContent = 'Tambah Outlet';
+      document.getElementById('outlet-form').reset();
+      document.getElementById('outlet_id').value = '';
+    }
+
+    function hideForm() {
+      document.getElementById('form-card').classList.add('hidden');
+    }
+
+    function editOutlet(id, name, address) {
+      document.getElementById('form-card').classList.remove('hidden');
+      document.getElementById('form-title').textContent = 'Edit Outlet';
+      document.getElementById('outlet_id').value = id;
+      document.getElementById('name').value = name;
+      document.getElementById('address').value = address;
+    }
+
+    async function deleteOutlet(id) {
+      if (!confirm('Hapus outlet ini?')) return;
+      await fetch('/api/admin/outlets/' + id, {
+        method: 'DELETE',
+        headers: { 'Authorization': 'Bearer ' + getToken() }
+      });
+      loadOutlets();
+    }
+
+    document.getElementById('outlet-form').addEventListener('submit', async (e) => {
+      e.preventDefault();
+      const id = document.getElementById('outlet_id').value;
+      const payload = {
+        name: document.getElementById('name').value,
+        address: document.getElementById('address').value
+      };
+      const url = id ? '/api/admin/outlets/' + id : '/api/admin/outlets';
+      const method = id ? 'PUT' : 'POST';
+      
+      const res = await fetch(url, {
+        method,
+        headers: { 'Content-Type': 'application/json', 'Authorization': 'Bearer ' + getToken() },
+        body: JSON.stringify(payload)
+      });
+      const data = await res.json();
+      document.getElementById('status').textContent = data.message;
+      if (res.ok) {
+        hideForm();
+        loadOutlets();
+      }
+    });
+
+    loadOutlets();
+  </script>
+</body>
+</html>

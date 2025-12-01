@@ -1,0 +1,20 @@
+CREATE TABLE IF NOT EXISTS payroll (
+  id INTEGER PRIMARY KEY AUTOINCREMENT,
+  user_id INTEGER NOT NULL,
+  month INTEGER NOT NULL,
+  year INTEGER NOT NULL,
+  gaji_pokok INTEGER NOT NULL DEFAULT 0,
+  uang_makan INTEGER NOT NULL DEFAULT 0,
+  uang_transport INTEGER NOT NULL DEFAULT 0,
+  lembur_jam INTEGER NOT NULL DEFAULT 0,
+  lembur_jam_rate INTEGER NOT NULL DEFAULT 7000,
+  lembur_libur INTEGER NOT NULL DEFAULT 0,
+  lembur_libur_rate INTEGER NOT NULL DEFAULT 35000,
+  tunjangan_jabatan INTEGER NOT NULL DEFAULT 0,
+  thr INTEGER NOT NULL DEFAULT 0,
+  denda INTEGER NOT NULL DEFAULT 0,
+  kasbon INTEGER NOT NULL DEFAULT 0,
+  komisi_total INTEGER NOT NULL DEFAULT 0,
+  created_at TEXT DEFAULT (strftime('%Y-%m-%dT%H:%M:%fZ', 'now')),
+  UNIQUE(user_id, month, year)
+);
