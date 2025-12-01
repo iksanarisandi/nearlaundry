@@ -8,11 +8,11 @@
   <script src="/shared/nav.js" defer></script>
 </head>
 <body class="min-h-full flex flex-col bg-slate-100" onload="NearMeNav.ensureRole(['produksi'])">
-  <main class="flex-1 mx-auto w-full max-w-5xl px-4 py-4">
+  <main class="flex-1 mx-auto w-full max-w-5xl px-4 py-4 pb-20">
     <div class="mb-4 flex flex-col md:flex-row md:items-end md:justify-between gap-3">
       <div>
         <h1 class="text-base font-semibold">Riwayat Harian</h1>
-        <p class="text-xs text-slate-500">Produksi dan pengeluaran per hari (user saat ini).</p>
+        <p class="text-xs text-slate-500">Produksi dan pengeluaran per hari.</p>
       </div>
       <div class="flex items-center gap-2 text-xs">
         <div>
@@ -23,23 +23,28 @@
       </div>
     </div>
 
-    <div class="grid grid-cols-1 md:grid-cols-2 gap-3">
+    <div class="grid grid-cols-1 gap-3">
       <div class="card">
-        <div class="text-xs text-slate-500 mb-1">Produksi</div>
-        <table class="w-full text-xs mt-1">
-          <thead>
-            <tr class="text-left text-slate-500 border-b">
-              <th class="py-1">Nota</th>
-              <th class="py-1">Proses</th>
-              <th class="py-1 text-right">Qty</th>
-            </tr>
-          </thead>
-          <tbody id="prod-body" class="divide-y"></tbody>
-        </table>
+        <div class="text-xs text-slate-500 mb-2">Produksi</div>
+        <div class="overflow-x-auto">
+          <table class="w-full text-xs">
+            <thead>
+              <tr class="text-left text-slate-500 border-b">
+                <th class="py-1">Pelanggan</th>
+                <th class="py-1">Nota</th>
+                <th class="py-1">Proses</th>
+                <th class="py-1 text-right">Berat</th>
+                <th class="py-1 text-right">Qty</th>
+              </tr>
+            </thead>
+            <tbody id="prod-body" class="divide-y"></tbody>
+          </table>
+        </div>
+        <div id="prod-summary" class="mt-2 pt-2 border-t text-xs text-slate-600"></div>
       </div>
       <div class="card">
-        <div class="text-xs text-slate-500 mb-1">Pengeluaran</div>
-        <table class="w-full text-xs mt-1">
+        <div class="text-xs text-slate-500 mb-2">Pengeluaran</div>
+        <table class="w-full text-xs">
           <thead>
             <tr class="text-left text-slate-500 border-b">
               <th class="py-1">Kategori</th>
@@ -48,6 +53,7 @@
           </thead>
           <tbody id="exp-body" class="divide-y"></tbody>
         </table>
+        <div id="exp-summary" class="mt-2 pt-2 border-t text-xs text-slate-600"></div>
       </div>
     </div>
 
@@ -75,20 +81,16 @@
   </nav>
 
   <script>
-    function getToken() {
-      return localStorage.getItem('token');
-    }
+    function getToken() { return localStorage.getItem('token'); }
+    function formatRupiah(v) { return 'Rp ' + (v || 0).toLocaleString('id-ID'); }
 
-    function formatRupiah(v) {
-      return 'Rp ' + (v || 0).toLocaleString('id-ID');
-    }
+    const processLabels = { cuci: 'Cuci', kering: 'Keringkan', setrika: 'Setrika', packing: 'Packing' };
 
     async function loadRiwayat(dateStr) {
       const statusEl = document.getElementById('status');
       statusEl.textContent = 'Memuat data...';
       try {
-        const params = new URLSearchParams({ date: dateStr });
-        const res = await fetch('/api/production/riwayat?' + params.toString(), {
+        const res = await fetch('/api/production/riwayat?date=' + dateStr, {
           headers: { 'Authorization': 'Bearer ' + getToken() },
         });
         const data = await res.json().catch(() => ({}));
@@ -96,21 +98,47 @@
           statusEl.textContent = data.message || 'Gagal memuat data';
           return;
         }
+
+        // Produksi
         const prodBody = document.getElementById('prod-body');
         prodBody.innerHTML = '';
+        let totalWeight = 0, totalQty = 0;
+        const processCounts = { cuci: 0, kering: 0, setrika: 0, packing: 0 };
+
         (data.production || []).forEach((row) => {
           const tr = document.createElement('tr');
-          tr.innerHTML = `<td class="py-1">${row.nota_number || '-'}</td><td class="py-1">${row.process}</td><td class="py-1 text-right">${row.qty}</td>`;
+          tr.innerHTML = `
+            <td class="py-1">${row.customer_name || '-'}</td>
+            <td class="py-1">${row.nota_number || '-'}</td>
+            <td class="py-1"><span class="px-1 py-0.5 rounded text-[11px] bg-slate-100">${processLabels[row.process] || row.process}</span></td>
+            <td class="py-1 text-right">${row.weight ? row.weight + ' kg' : '-'}</td>
+            <td class="py-1 text-right">${row.qty}</td>
+          `;
           prodBody.appendChild(tr);
+          totalWeight += row.weight || 0;
+          totalQty += row.qty || 0;
+          if (processCounts[row.process] !== undefined) processCounts[row.process]++;
         });
 
+        document.getElementById('prod-summary').innerHTML = data.production?.length
+          ? `Total: ${totalWeight.toFixed(1)} kg, ${totalQty} pcs | Cuci: ${processCounts.cuci}, Kering: ${processCounts.kering}, Setrika: ${processCounts.setrika}, Packing: ${processCounts.packing}`
+          : 'Belum ada data produksi';
+
+        // Pengeluaran
         const expBody = document.getElementById('exp-body');
         expBody.innerHTML = '';
+        let totalExp = 0;
+
         (data.expenses || []).forEach((row) => {
           const tr = document.createElement('tr');
-          tr.innerHTML = `<td class="py-1">${row.category}</td><td class="py-1 text-right">${formatRupiah(Number(row.amount || 0))}</td>`;
+          tr.innerHTML = `<td class="py-1">${row.category}</td><td class="py-1 text-right">${formatRupiah(row.amount)}</td>`;
           expBody.appendChild(tr);
+          totalExp += row.amount || 0;
         });
+
+        document.getElementById('exp-summary').innerHTML = data.expenses?.length
+          ? `Total pengeluaran: ${formatRupiah(totalExp)}`
+          : 'Belum ada pengeluaran';
 
         statusEl.textContent = '';
       } catch {
@@ -119,16 +147,8 @@
     }
 
     const dateInput = document.getElementById('date');
-    const btnLoad = document.getElementById('btn-load');
-
-    const today = new Date();
-    dateInput.valueAsDate = today;
-
-    btnLoad.addEventListener('click', () => {
-      if (!dateInput.value) return;
-      loadRiwayat(dateInput.value);
-    });
-
+    dateInput.valueAsDate = new Date();
+    document.getElementById('btn-load').addEventListener('click', () => loadRiwayat(dateInput.value));
     loadRiwayat(dateInput.value);
   </script>
 </body>

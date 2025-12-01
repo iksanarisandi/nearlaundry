@@ -15,7 +15,7 @@ app.get('/', async (c) => {
   const db = c.env.DB;
 
   const production = await db.prepare(
-    'SELECT nota_number, process, qty FROM production WHERE user_id = ? AND substr(timestamp, 1, 10) = ? ORDER BY id DESC'
+    'SELECT customer_name, nota_number, process, weight, qty FROM production WHERE user_id = ? AND substr(timestamp, 1, 10) = ? ORDER BY id DESC'
   ).bind(user.sub, date).all();
 
   const expenses = await db.prepare(

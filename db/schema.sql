@@ -28,9 +28,10 @@ CREATE TABLE IF NOT EXISTS production (
   id INTEGER PRIMARY KEY AUTOINCREMENT,
   user_id INTEGER NOT NULL,
   outlet_id INTEGER NOT NULL,
-  customer_name TEXT,
-  nota_number TEXT,
-  process TEXT CHECK (process IN ('cuci','kering','setrika','packing')),
+  customer_name TEXT NOT NULL,
+  nota_number TEXT NOT NULL,
+  process TEXT NOT NULL CHECK (process IN ('cuci','kering','setrika','packing')),
+  weight REAL NOT NULL,
   qty INTEGER NOT NULL,
   timestamp TEXT DEFAULT (strftime('%Y-%m-%dT%H:%M:%fZ', 'now'))
 );

@@ -3,40 +3,52 @@
 <head>
   <meta charset="utf-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1" />
-  <title>Input Produksi - NearMe Laundry</title>
+  <title>Produksi - NearMe Laundry</title>
   <link rel="stylesheet" href="/styles.css" />
   <script src="/shared/nav.js" defer></script>
 </head>
 <body class="min-h-full flex flex-col bg-slate-100" onload="NearMeNav.ensureRole(['produksi'])">
-  <main class="flex-1 mx-auto w-full max-w-md px-4 py-4">
-    <div class="card">
-      <h1 class="text-base font-semibold mb-1">Input Produksi</h1>
-      <p class="text-xs text-slate-500 mb-4">Catat produksi berdasarkan nota pelanggan.</p>
+  <main class="flex-1 mx-auto w-full max-w-md px-4 py-4 pb-20">
+    <!-- Menu Utama -->
+    <div id="menu-utama" class="card">
+      <h1 class="text-base font-semibold mb-3">Input Produksi</h1>
+      <p class="text-xs text-slate-500 mb-4">Pilih jenis proses yang akan diinput.</p>
+      <div class="grid grid-cols-2 gap-3">
+        <button onclick="showForm('cuci')" class="py-4 rounded-lg bg-blue-500 text-white font-semibold text-sm">🧺 Cuci</button>
+        <button onclick="showForm('kering')" class="py-4 rounded-lg bg-orange-500 text-white font-semibold text-sm">☀️ Keringkan</button>
+        <button onclick="showForm('setrika')" class="py-4 rounded-lg bg-purple-500 text-white font-semibold text-sm">👔 Setrika</button>
+        <button onclick="showForm('packing')" class="py-4 rounded-lg bg-green-500 text-white font-semibold text-sm">📦 Packing</button>
+      </div>
+    </div>
+
+    <!-- Form Input -->
+    <div id="form-input" class="card hidden">
+      <div class="flex items-center justify-between mb-3">
+        <h2 id="form-title" class="text-base font-semibold">Input Cuci</h2>
+        <button onclick="backToMenu()" class="text-xs text-slate-500 underline">← Kembali</button>
+      </div>
       <form id="produksi-form" class="space-y-3">
+        <input type="hidden" id="process" />
         <div>
-          <label class="block text-xs font-medium text-slate-600 mb-1">Nama pelanggan (opsional)</label>
-          <input type="text" id="customer_name" class="w-full rounded-lg border border-slate-200 px-3 py-2 text-sm" />
+          <label class="block text-xs font-medium text-slate-600 mb-1">Nama Pelanggan *</label>
+          <input type="text" id="customer_name" class="w-full rounded-lg border border-slate-200 px-3 py-2 text-sm" required />
         </div>
         <div>
-          <label class="block text-xs font-medium text-slate-600 mb-1">Nomor nota (opsional)</label>
-          <input type="text" id="nota_number" class="w-full rounded-lg border border-slate-200 px-3 py-2 text-sm" />
+          <label class="block text-xs font-medium text-slate-600 mb-1">Nomor Nota *</label>
+          <input type="text" id="nota_number" class="w-full rounded-lg border border-slate-200 px-3 py-2 text-sm" required />
         </div>
-        <div>
-          <label class="block text-xs font-medium text-slate-600 mb-1">Proses</label>
-          <select id="process" class="w-full rounded-lg border border-slate-200 px-3 py-2 text-sm" required>
-            <option value="">Pilih proses</option>
-            <option value="cuci">Cuci</option>
-            <option value="kering">Kering</option>
-            <option value="setrika">Setrika</option>
-            <option value="packing">Packing</option>
-          </select>
-        </div>
-        <div>
-          <label class="block text-xs font-medium text-slate-600 mb-1">Qty (kg / pcs)</label>
-          <input type="number" id="qty" min="1" class="w-full rounded-lg border border-slate-200 px-3 py-2 text-sm" required />
+        <div class="grid grid-cols-2 gap-3">
+          <div>
+            <label class="block text-xs font-medium text-slate-600 mb-1">Berat (kg) *</label>
+            <input type="number" id="weight" step="0.1" min="0.1" class="w-full rounded-lg border border-slate-200 px-3 py-2 text-sm" required />
+          </div>
+          <div>
+            <label class="block text-xs font-medium text-slate-600 mb-1">Qty (pcs) *</label>
+            <input type="number" id="qty" min="1" class="w-full rounded-lg border border-slate-200 px-3 py-2 text-sm" required />
+          </div>
         </div>
         <p id="status" class="text-xs text-slate-600"></p>
-        <button type="submit" class="btn-primary mt-2">Simpan</button>
+        <button type="submit" id="submit-btn" class="btn-primary">Simpan</button>
       </form>
     </div>
   </main>
@@ -62,22 +74,51 @@
   </nav>
 
   <script>
-    function getToken() {
-      return localStorage.getItem('token');
+    function getToken() { return localStorage.getItem('token'); }
+
+    const processLabels = {
+      cuci: '🧺 Input Cuci',
+      kering: '☀️ Input Keringkan',
+      setrika: '👔 Input Setrika',
+      packing: '📦 Input Packing'
+    };
+
+    const processColors = {
+      cuci: 'bg-blue-500',
+      kering: 'bg-orange-500',
+      setrika: 'bg-purple-500',
+      packing: 'bg-green-500'
+    };
+
+    function showForm(process) {
+      document.getElementById('menu-utama').classList.add('hidden');
+      document.getElementById('form-input').classList.remove('hidden');
+      document.getElementById('form-title').textContent = processLabels[process];
+      document.getElementById('process').value = process;
+      document.getElementById('submit-btn').className = 'w-full rounded-lg text-center text-white font-semibold py-3 ' + processColors[process];
+      document.getElementById('status').textContent = '';
+      document.getElementById('produksi-form').reset();
+      document.getElementById('process').value = process;
     }
 
-    const form = document.getElementById('produksi-form');
-    const statusEl = document.getElementById('status');
+    function backToMenu() {
+      document.getElementById('form-input').classList.add('hidden');
+      document.getElementById('menu-utama').classList.remove('hidden');
+    }
 
-    form.addEventListener('submit', async (e) => {
+    document.getElementById('produksi-form').addEventListener('submit', async (e) => {
       e.preventDefault();
+      const statusEl = document.getElementById('status');
       statusEl.textContent = 'Menyimpan...';
+
       const payload = {
-        customer_name: document.getElementById('customer_name').value || null,
-        nota_number: document.getElementById('nota_number').value || null,
+        customer_name: document.getElementById('customer_name').value,
+        nota_number: document.getElementById('nota_number').value,
         process: document.getElementById('process').value,
-        qty: Number(document.getElementById('qty').value),
+        weight: parseFloat(document.getElementById('weight').value),
+        qty: parseInt(document.getElementById('qty').value),
       };
+
       try {
         const res = await fetch('/api/production', {
           method: 'POST',
@@ -89,13 +130,18 @@
         });
         const data = await res.json().catch(() => ({}));
         if (!res.ok) {
-          statusEl.textContent = data.message || 'Gagal menyimpan produksi';
+          statusEl.textContent = data.message || 'Gagal menyimpan';
+          statusEl.classList.add('text-red-500');
         } else {
-          statusEl.textContent = data.message || 'Produksi tersimpan';
-          form.reset();
+          statusEl.textContent = data.message || 'Berhasil disimpan!';
+          statusEl.classList.remove('text-red-500');
+          statusEl.classList.add('text-green-600');
+          document.getElementById('produksi-form').reset();
+          document.getElementById('process').value = payload.process;
         }
       } catch {
         statusEl.textContent = 'Terjadi kesalahan jaringan';
+        statusEl.classList.add('text-red-500');
       }
     });
   </script>
