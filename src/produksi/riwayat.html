@@ -1,0 +1,135 @@
+<!doctype html>
+<html lang="id" class="h-full">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>Riwayat Harian Produksi - NearMe Laundry</title>
+  <link rel="stylesheet" href="/public/styles.css" />
+  <script src="/shared/nav.js" defer></script>
+</head>
+<body class="min-h-full flex flex-col bg-slate-100" onload="NearMeNav.ensureRole(['produksi'])">
+  <main class="flex-1 mx-auto w-full max-w-5xl px-4 py-4">
+    <div class="mb-4 flex flex-col md:flex-row md:items-end md:justify-between gap-3">
+      <div>
+        <h1 class="text-base font-semibold">Riwayat Harian</h1>
+        <p class="text-xs text-slate-500">Produksi dan pengeluaran per hari (user saat ini).</p>
+      </div>
+      <div class="flex items-center gap-2 text-xs">
+        <div>
+          <label class="block text-slate-600 mb-1">Tanggal</label>
+          <input type="date" id="date" class="rounded-lg border border-slate-200 px-2 py-1" />
+        </div>
+        <button id="btn-load" class="btn-secondary mt-4 md:mt-0">Tampilkan</button>
+      </div>
+    </div>
+
+    <div class="grid grid-cols-1 md:grid-cols-2 gap-3">
+      <div class="card">
+        <div class="text-xs text-slate-500 mb-1">Produksi</div>
+        <table class="w-full text-xs mt-1">
+          <thead>
+            <tr class="text-left text-slate-500 border-b">
+              <th class="py-1">Nota</th>
+              <th class="py-1">Proses</th>
+              <th class="py-1 text-right">Qty</th>
+            </tr>
+          </thead>
+          <tbody id="prod-body" class="divide-y"></tbody>
+        </table>
+      </div>
+      <div class="card">
+        <div class="text-xs text-slate-500 mb-1">Pengeluaran</div>
+        <table class="w-full text-xs mt-1">
+          <thead>
+            <tr class="text-left text-slate-500 border-b">
+              <th class="py-1">Kategori</th>
+              <th class="py-1 text-right">Nominal</th>
+            </tr>
+          </thead>
+          <tbody id="exp-body" class="divide-y"></tbody>
+        </table>
+      </div>
+    </div>
+
+    <p id="status" class="text-xs text-slate-600 mt-3"></p>
+  </main>
+
+  <nav class="fixed bottom-0 inset-x-0 bg-white border-t border-slate-200">
+    <div class="max-w-md mx-auto flex justify-around py-2 text-[11px]">
+      <button onclick="window.location.href='/produksi/absen.html'" class="flex flex-col items-center text-slate-500">
+        <span>Absen</span>
+      </button>
+      <button onclick="window.location.href='/produksi/produksi.html'" class="flex flex-col items-center text-slate-500">
+        <span>Produksi</span>
+      </button>
+      <button onclick="window.location.href='/produksi/pengeluaran.html'" class="flex flex-col items-center text-slate-500">
+        <span>Pengeluaran</span>
+      </button>
+      <button onclick="window.location.href='/produksi/riwayat.html'" class="flex flex-col items-center text-primary">
+        <span>Riwayat</span>
+      </button>
+      <button onclick="NearMeNav.logout()" class="flex flex-col items-center text-slate-500">
+        <span>Keluar</span>
+      </button>
+    </div>
+  </nav>
+
+  <script>
+    function getToken() {
+      return localStorage.getItem('token');
+    }
+
+    function formatRupiah(v) {
+      return 'Rp ' + (v || 0).toLocaleString('id-ID');
+    }
+
+    async function loadRiwayat(dateStr) {
+      const statusEl = document.getElementById('status');
+      statusEl.textContent = 'Memuat data...';
+      try {
+        const params = new URLSearchParams({ date: dateStr });
+        const res = await fetch('/api/production/riwayat?' + params.toString(), {
+          headers: { 'Authorization': 'Bearer ' + getToken() },
+        });
+        const data = await res.json().catch(() => ({}));
+        if (!res.ok) {
+          statusEl.textContent = data.message || 'Gagal memuat data';
+          return;
+        }
+        const prodBody = document.getElementById('prod-body');
+        prodBody.innerHTML = '';
+        (data.production || []).forEach((row) => {
+          const tr = document.createElement('tr');
+          tr.innerHTML = `<td class="py-1">${row.nota_number || '-'}</td><td class="py-1">${row.process}</td><td class="py-1 text-right">${row.qty}</td>`;
+          prodBody.appendChild(tr);
+        });
+
+        const expBody = document.getElementById('exp-body');
+        expBody.innerHTML = '';
+        (data.expenses || []).forEach((row) => {
+          const tr = document.createElement('tr');
+          tr.innerHTML = `<td class="py-1">${row.category}</td><td class="py-1 text-right">${formatRupiah(Number(row.amount || 0))}</td>`;
+          expBody.appendChild(tr);
+        });
+
+        statusEl.textContent = '';
+      } catch {
+        statusEl.textContent = 'Terjadi kesalahan memuat data';
+      }
+    }
+
+    const dateInput = document.getElementById('date');
+    const btnLoad = document.getElementById('btn-load');
+
+    const today = new Date();
+    dateInput.valueAsDate = today;
+
+    btnLoad.addEventListener('click', () => {
+      if (!dateInput.value) return;
+      loadRiwayat(dateInput.value);
+    });
+
+    loadRiwayat(dateInput.value);
+  </script>
+</body>
+</html>

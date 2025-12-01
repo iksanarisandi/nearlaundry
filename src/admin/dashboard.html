@@ -1,0 +1,149 @@
+<!doctype html>
+<html lang="id" class="h-full">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>Dashboard Admin - NearMe Laundry</title>
+  <link rel="stylesheet" href="/public/styles.css" />
+  <script src="/shared/nav.js" defer></script>
+</head>
+<body class="min-h-full flex flex-col bg-slate-100" onload="NearMeNav.ensureRole(['admin'])">
+  <header class="bg-white shadow-sm">
+    <div class="mx-auto max-w-5xl px-4 py-3 flex items-center justify-between">
+      <div class="flex items-center gap-3">
+        <img src="/icon.JPG" alt="Logo NearMe Laundry" class="h-8 w-8 rounded-full object-cover" />
+        <div>
+          <div class="font-semibold text-primary text-sm">NearMe Laundry - Admin</div>
+          <div class="text-[11px] text-slate-500">Mini ERP Laundry Harian</div>
+        </div>
+      </div>
+      <nav class="flex items-center gap-3 text-[11px] text-slate-600">
+        <a href="/admin/dashboard.html" class="text-primary font-semibold">Dashboard</a>
+        <a href="/admin/omzet.html">Omzet</a>
+        <a href="/admin/absensi.html">Absensi</a>
+        <a href="/admin/payroll.html">Payroll</a>
+        <a href="/admin/users.html">User</a>
+        <button onclick="NearMeNav.logout()" class="ml-2 text-red-500">Keluar</button>
+      </nav>
+    </div>
+  </header>
+
+  <main class="flex-1 mx-auto w-full max-w-5xl px-4 py-4">
+    <div class="mb-4 flex flex-col md:flex-row md:items-end md:justify-between gap-3">
+      <div>
+        <h1 class="text-lg font-semibold">Dashboard Admin</h1>
+        <p class="text-xs text-slate-500">Ringkasan omzet dan pengeluaran per bulan.</p>
+      </div>
+      <form id="filter-form" class="flex items-center gap-2 text-xs">
+        <div>
+          <label class="block text-slate-600 mb-1">Bulan</label>
+          <input type="number" id="month" min="1" max="12" class="w-20 rounded-lg border border-slate-200 px-2 py-1" required />
+        </div>
+        <div>
+          <label class="block text-slate-600 mb-1">Tahun</label>
+          <input type="number" id="year" class="w-24 rounded-lg border border-slate-200 px-2 py-1" required />
+        </div>
+        <button type="submit" class="btn-secondary mt-4 md:mt-0">Terapkan</button>
+      </form>
+    </div>
+
+    <div class="grid grid-cols-1 md:grid-cols-3 gap-3 mb-4">
+      <div class="card">
+        <div class="text-xs text-slate-500 mb-1">Total Omzet</div>
+        <div id="total-omzet" class="text-xl font-semibold text-primary">Rp 0</div>
+      </div>
+      <div class="card md:col-span-2">
+        <div class="text-xs text-slate-500 mb-1">Omzet per Outlet</div>
+        <table class="w-full text-xs mt-1">
+          <thead>
+            <tr class="text-left text-slate-500 border-b">
+              <th class="py-1">Outlet</th>
+              <th class="py-1 text-right">Total</th>
+            </tr>
+          </thead>
+          <tbody id="omzet-outlet-body" class="divide-y"></tbody>
+        </table>
+      </div>
+    </div>
+
+    <div class="card">
+      <div class="text-xs text-slate-500 mb-1">Pengeluaran per Kategori</div>
+      <table class="w-full text-xs mt-1">
+        <thead>
+          <tr class="text-left text-slate-500 border-b">
+            <th class="py-1">Kategori</th>
+            <th class="py-1 text-right">Total</th>
+          </tr>
+        </thead>
+        <tbody id="expense-body" class="divide-y"></tbody>
+      </table>
+    </div>
+
+    <p id="status" class="text-xs text-slate-600 mt-3"></p>
+  </main>
+
+  <script>
+    function getToken() {
+      return localStorage.getItem('token');
+    }
+
+    function formatRupiah(v) {
+      return 'Rp ' + (v || 0).toLocaleString('id-ID');
+    }
+
+    async function loadDashboard(month, year) {
+      const statusEl = document.getElementById('status');
+      statusEl.textContent = 'Memuat data...';
+      try {
+        const params = new URLSearchParams({ month: String(month), year: String(year) });
+        const res = await fetch('/api/dashboard?' + params.toString(), {
+          headers: {
+            'Authorization': 'Bearer ' + getToken(),
+          },
+        });
+        const data = await res.json().catch(() => ({}));
+        if (!res.ok) {
+          statusEl.textContent = data.message || 'Gagal memuat data';
+          return;
+        }
+        document.getElementById('total-omzet').textContent = formatRupiah(Number(data.totalRevenue || 0));
+
+        const omzetBody = document.getElementById('omzet-outlet-body');
+        omzetBody.innerHTML = '';
+        (data.revenuePerOutlet || []).forEach((row) => {
+          const tr = document.createElement('tr');
+          tr.innerHTML = `<td class="py-1">${row.outlet}</td><td class="py-1 text-right">${formatRupiah(Number(row.total || 0))}</td>`;
+          omzetBody.appendChild(tr);
+        });
+
+        const expenseBody = document.getElementById('expense-body');
+        expenseBody.innerHTML = '';
+        (data.expensesByCategory || []).forEach((row) => {
+          const tr = document.createElement('tr');
+          tr.innerHTML = `<td class="py-1">${row.category}</td><td class="py-1 text-right">${formatRupiah(Number(row.total || 0))}</td>`;
+          expenseBody.appendChild(tr);
+        });
+
+        statusEl.textContent = '';
+      } catch {
+        statusEl.textContent = 'Terjadi kesalahan memuat data';
+      }
+    }
+
+    const form = document.getElementById('filter-form');
+    const monthInput = document.getElementById('month');
+    const yearInput = document.getElementById('year');
+
+    const today = new Date();
+    monthInput.value = today.getMonth() + 1;
+    yearInput.value = today.getFullYear();
+
+    form.addEventListener('submit', (e) => {
+      e.preventDefault();
+      loadDashboard(Number(monthInput.value), Number(yearInput.value));
+    });
+
+    loadDashboard(today.getMonth() + 1, today.getFullYear());
+  </script>
+</body>
+</html>

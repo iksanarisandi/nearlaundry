@@ -1,0 +1,76 @@
+<!doctype html>
+<html lang="id" class="h-full">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>Masuk - NearMe Laundry</title>
+  <link rel="stylesheet" href="/public/styles.css" />
+  <script src="/shared/nav.js" defer></script>
+  <script src="https://unpkg.com/htmx.org@1.9.12" defer></script>
+</head>
+<body class="min-h-full flex flex-col bg-slate-100">
+  <div class="flex-1 flex items-center justify-center px-4 py-8">
+    <div class="card w-full max-w-sm">
+      <div class="flex items-center gap-3 mb-4">
+        <img src="/icon.JPG" alt="Logo NearMe Laundry" class="h-10 w-10 rounded-full object-cover" />
+        <div>
+          <div class="font-semibold text-lg text-primary">NearMe Laundry</div>
+          <div class="text-xs text-slate-500">Mini ERP Laundry Harian</div>
+        </div>
+      </div>
+      <h1 class="text-base font-semibold mb-2">Masuk</h1>
+      <p class="text-xs text-slate-500 mb-4">Gunakan email dan kata sandi yang telah diberikan admin.</p>
+      <form id="login-form" class="space-y-3">
+        <div>
+          <label class="block text-xs font-medium text-slate-600 mb-1">Email</label>
+          <input type="email" id="email" class="w-full rounded-lg border border-slate-200 px-3 py-2 text-sm" required />
+        </div>
+        <div>
+          <label class="block text-xs font-medium text-slate-600 mb-1">Kata sandi</label>
+          <input type="password" id="password" class="w-full rounded-lg border border-slate-200 px-3 py-2 text-sm" required />
+        </div>
+        <p id="login-error" class="text-xs text-red-500 hidden"></p>
+        <button type="submit" class="btn-primary mt-2">Masuk</button>
+      </form>
+    </div>
+  </div>
+
+  <script>
+    const form = document.getElementById('login-form');
+    const errorEl = document.getElementById('login-error');
+
+    form.addEventListener('submit', async (e) => {
+      e.preventDefault();
+      errorEl.classList.add('hidden');
+      const email = (document.getElementById('email')).value;
+      const password = (document.getElementById('password')).value;
+      try {
+        const res = await fetch('/api/login', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ email, password })
+        });
+        if (!res.ok) {
+          const data = await res.json().catch(() => ({}));
+          errorEl.textContent = data.message || 'Gagal masuk';
+          errorEl.classList.remove('hidden');
+          return;
+        }
+        const data = await res.json();
+        localStorage.setItem('token', data.token);
+        localStorage.setItem('user', JSON.stringify(data.user));
+        if (data.user.role === 'admin') {
+          window.location.href = '/admin/dashboard.html';
+        } else if (data.user.role === 'gudang') {
+          window.location.href = '/gudang/stok.html';
+        } else {
+          window.location.href = '/produksi/absen.html';
+        }
+      } catch (err) {
+        errorEl.textContent = 'Terjadi kesalahan jaringan';
+        errorEl.classList.remove('hidden');
+      }
+    });
+  </script>
+</body>
+</html>

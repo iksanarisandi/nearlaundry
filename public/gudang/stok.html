@@ -1,0 +1,72 @@
+<!doctype html>
+<html lang="id" class="h-full">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>Stok Gudang - NearMe Laundry</title>
+  <link rel="stylesheet" href="/styles.css" />
+  <script src="/shared/nav.js" defer></script>
+</head>
+<body class="min-h-full flex flex-col bg-slate-100" onload="NearMeNav.ensureRole(['gudang'])">
+  <main class="flex-1 mx-auto w-full max-w-md px-4 py-4">
+    <div class="card">
+      <h1 class="text-base font-semibold mb-3">Stok Gudang</h1>
+      <table class="w-full text-xs">
+        <thead>
+          <tr class="text-left text-slate-500 border-b">
+            <th class="py-1">Barang</th>
+            <th class="py-1 text-right">Stok</th>
+          </tr>
+        </thead>
+        <tbody id="stok-body" class="divide-y"></tbody>
+      </table>
+      <p id="status" class="text-xs text-slate-600 mt-3"></p>
+    </div>
+  </main>
+
+  <nav class="fixed bottom-0 inset-x-0 bg-white border-t border-slate-200">
+    <div class="max-w-md mx-auto flex justify-around py-2 text-[11px]">
+      <button onclick="window.location.href='/gudang/stok.html'" class="flex flex-col items-center text-primary">
+        <span>Stok</span>
+      </button>
+      <button onclick="window.location.href='/gudang/out.html'" class="flex flex-col items-center text-slate-500">
+        <span>Keluarkan</span>
+      </button>
+      <button onclick="NearMeNav.logout()" class="flex flex-col items-center text-slate-500">
+        <span>Keluar</span>
+      </button>
+    </div>
+  </nav>
+
+  <script>
+    function getToken() {
+      return localStorage.getItem('token');
+    }
+
+    async function loadStok() {
+      const statusEl = document.getElementById('status');
+      statusEl.textContent = 'Memuat data stok...';
+      try {
+        const res = await fetch('/api/warehouse/items', {
+          headers: {
+            'Authorization': 'Bearer ' + getToken(),
+          },
+        });
+        const data = await res.json().catch(() => []);
+        const body = document.getElementById('stok-body');
+        body.innerHTML = '';
+        data.forEach((row) => {
+          const tr = document.createElement('tr');
+          tr.innerHTML = `<td class="py-1">${row.name}</td><td class="py-1 text-right">${row.qty}</td>`;
+          body.appendChild(tr);
+        });
+        statusEl.textContent = data.length ? '' : 'Belum ada data stok';
+      } catch {
+        statusEl.textContent = 'Terjadi kesalahan memuat data';
+      }
+    }
+
+    loadStok();
+  </script>
+</body>
+</html>

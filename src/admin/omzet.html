@@ -1,0 +1,100 @@
+<!doctype html>
+<html lang="id" class="h-full">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>Input Omzet Harian - NearMe Laundry</title>
+  <link rel="stylesheet" href="/public/styles.css" />
+  <script src="/shared/nav.js" defer></script>
+</head>
+<body class="min-h-full flex flex-col bg-slate-100" onload="NearMeNav.ensureRole(['admin'])">
+  <header class="bg-white shadow-sm">
+    <div class="mx-auto max-w-5xl px-4 py-3 flex items-center justify-between">
+      <div class="flex items-center gap-3">
+        <img src="/icon.JPG" alt="Logo NearMe Laundry" class="h-8 w-8 rounded-full object-cover" />
+        <div>
+          <div class="font-semibold text-primary text-sm">NearMe Laundry - Admin</div>
+          <div class="text-[11px] text-slate-500">Mini ERP Laundry Harian</div>
+        </div>
+      </div>
+      <nav class="flex items-center gap-3 text-[11px] text-slate-600">
+        <a href="/admin/dashboard.html">Dashboard</a>
+        <a href="/admin/omzet.html" class="text-primary font-semibold">Omzet</a>
+        <a href="/admin/absensi.html">Absensi</a>
+        <a href="/admin/payroll.html">Payroll</a>
+        <a href="/admin/users.html">User</a>
+        <button onclick="NearMeNav.logout()" class="ml-2 text-red-500">Keluar</button>
+      </nav>
+    </div>
+  </header>
+
+  <main class="flex-1 mx-auto w-full max-w-md px-4 py-4">
+    <div class="card">
+      <h1 class="text-base font-semibold mb-1">Input Omzet Harian</h1>
+      <p class="text-xs text-slate-500 mb-4">Catat omzet per outlet per hari.</p>
+      <form id="omzet-form" class="space-y-3">
+        <div>
+          <label class="block text-xs font-medium text-slate-600 mb-1">Tanggal</label>
+          <input type="date" id="date" class="w-full rounded-lg border border-slate-200 px-3 py-2 text-sm" required />
+        </div>
+        <div>
+          <label class="block text-xs font-medium text-slate-600 mb-1">Outlet</label>
+          <select id="outlet_id" class="w-full rounded-lg border border-slate-200 px-3 py-2 text-sm" required>
+            <option value="">Pilih outlet</option>
+            <option value="1">Outlet Pusat</option>
+            <option value="2">Outlet Cabang 1</option>
+          </select>
+        </div>
+        <div>
+          <label class="block text-xs font-medium text-slate-600 mb-1">Omzet (Rp)</label>
+          <input type="number" id="amount" min="1" class="w-full rounded-lg border border-slate-200 px-3 py-2 text-sm" required />
+        </div>
+        <p id="status" class="text-xs text-slate-600"></p>
+        <button type="submit" class="btn-primary mt-2">Simpan</button>
+      </form>
+    </div>
+  </main>
+
+  <script>
+    function getToken() {
+      return localStorage.getItem('token');
+    }
+
+    const form = document.getElementById('omzet-form');
+    const statusEl = document.getElementById('status');
+
+    form.addEventListener('submit', async (e) => {
+      e.preventDefault();
+      statusEl.textContent = 'Menyimpan...';
+      const payload = {
+        outlet_id: Number(document.getElementById('outlet_id').value),
+        date: document.getElementById('date').value,
+        amount: Number(document.getElementById('amount').value),
+      };
+      try {
+        const res = await fetch('/api/revenue', {
+          method: 'POST',
+          headers: {
+            'Content-Type': 'application/json',
+            'Authorization': 'Bearer ' + getToken(),
+          },
+          body: JSON.stringify(payload),
+        });
+        const data = await res.json().catch(() => ({}));
+        if (!res.ok) {
+          statusEl.textContent = data.message || 'Gagal menyimpan omzet';
+        } else {
+          statusEl.textContent = data.message || 'Omzet tersimpan';
+          form.reset();
+        }
+      } catch {
+        statusEl.textContent = 'Terjadi kesalahan jaringan';
+      }
+    });
+
+    // set default tanggal hari ini
+    const today = new Date();
+    document.getElementById('date').valueAsDate = today;
+  </script>
+</body>
+</html>

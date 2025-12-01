@@ -1,0 +1,16 @@
+name = "nearme-laundry-mini-erp"
+main = "functions/index.ts"
+compatibility_date = "2024-09-23"
+compatibility_flags = ["nodejs_compat"]
+
+[assets]
+directory = "./public"
+binding = "ASSETS"
+
+[[d1_databases]]
+binding = "DB"
+database_name = "nearme_laundry_db"
+database_id = "251cca25-c423-4146-9939-26bfbec4bc84"
+
+[vars]
+JWT_SECRET = "nearme-laundry-secret-key-change-in-production"

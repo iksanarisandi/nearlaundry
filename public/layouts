@@ -1,0 +1,23 @@
+<!doctype html>
+<html lang="id" class="h-full">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>NearMe Laundry</title>
+  <link rel="stylesheet" href="/public/styles.css" />
+</head>
+<body class="min-h-full flex flex-col">
+  <header class="bg-white shadow-sm">
+    <div class="mx-auto max-w-5xl px-4 py-3 flex items-center gap-3">
+      <img src="/icon.JPG" alt="Logo NearMe Laundry" class="h-8 w-8 rounded-full object-cover" />
+      <div>
+        <div class="font-semibold text-primary">NearMe Laundry</div>
+        <div class="text-xs text-slate-500">Mini ERP Laundry Harian</div>
+      </div>
+    </div>
+  </header>
+  <main class="flex-1 mx-auto w-full max-w-md px-4 py-4">
+    <!-- Konten halaman akan disisipkan di sini oleh masing-masing file -->
+  </main>
+</body>
+</html>

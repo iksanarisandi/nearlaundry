@@ -1,0 +1,243 @@
+<!doctype html>
+<html lang="id" class="h-full">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>Manajemen User - NearMe Laundry</title>
+  <link rel="stylesheet" href="/styles.css" />
+  <script src="/shared/nav.js" defer></script>
+</head>
+<body class="min-h-full flex flex-col bg-slate-100" onload="NearMeNav.ensureRole(['admin'])">
+  <header class="bg-white shadow-sm">
+    <div class="mx-auto max-w-5xl px-4 py-3 flex items-center justify-between">
+      <div class="flex items-center gap-3">
+        <img src="/icon.JPG" alt="Logo NearMe Laundry" class="h-8 w-8 rounded-full object-cover" />
+        <div>
+          <div class="font-semibold text-primary text-sm">NearMe Laundry - Admin</div>
+          <div class="text-[11px] text-slate-500">Mini ERP Laundry Harian</div>
+        </div>
+      </div>
+      <nav class="flex items-center gap-3 text-[11px] text-slate-600">
+        <a href="/admin/dashboard.html">Dashboard</a>
+        <a href="/admin/omzet.html">Omzet</a>
+        <a href="/admin/absensi.html">Absensi</a>
+        <a href="/admin/payroll.html">Payroll</a>
+        <a href="/admin/users.html" class="text-primary font-semibold">User</a>
+        <button onclick="NearMeNav.logout()" class="ml-2 text-red-500">Keluar</button>
+      </nav>
+    </div>
+  </header>
+
+  <main class="flex-1 mx-auto w-full max-w-5xl px-4 py-4">
+    <div class="mb-4 flex flex-col md:flex-row md:items-start md:justify-between gap-3">
+      <div>
+        <h1 class="text-lg font-semibold">Manajemen User</h1>
+        <p class="text-xs text-slate-500">Tambah, ubah, dan reset kata sandi user.</p>
+      </div>
+      <button id="btn-new" class="btn-secondary md:w-auto">User baru</button>
+    </div>
+
+    <div class="card mb-4 hidden" id="form-card">
+      <h2 class="text-sm font-semibold mb-2" id="form-title">User baru</h2>
+      <form id="user-form" class="space-y-3">
+        <input type="hidden" id="user_id" />
+        <div class="grid grid-cols-1 md:grid-cols-2 gap-3">
+          <div>
+            <label class="block text-xs font-medium text-slate-600 mb-1">Nama</label>
+            <input type="text" id="name" class="w-full rounded-lg border border-slate-200 px-3 py-2 text-sm" required />
+          </div>
+          <div>
+            <label class="block text-xs font-medium text-slate-600 mb-1">Email</label>
+            <input type="email" id="email" class="w-full rounded-lg border border-slate-200 px-3 py-2 text-sm" required />
+          </div>
+        </div>
+        <div class="grid grid-cols-1 md:grid-cols-3 gap-3">
+          <div>
+            <label class="block text-xs font-medium text-slate-600 mb-1">Role</label>
+            <select id="role" class="w-full rounded-lg border border-slate-200 px-3 py-2 text-sm" required>
+              <option value="">Pilih role</option>
+              <option value="admin">Admin</option>
+              <option value="gudang">Gudang</option>
+              <option value="produksi">Produksi</option>
+            </select>
+          </div>
+          <div>
+            <label class="block text-xs font-medium text-slate-600 mb-1">Outlet</label>
+            <select id="outlet_id" class="w-full rounded-lg border border-slate-200 px-3 py-2 text-sm">
+              <option value="">Tanpa outlet</option>
+              <option value="1">Outlet Pusat</option>
+              <option value="2">Outlet Cabang 1</option>
+            </select>
+          </div>
+          <div id="password-wrapper">
+            <label class="block text-xs font-medium text-slate-600 mb-1">Kata sandi (opsional)</label>
+            <input type="password" id="password" class="w-full rounded-lg border border-slate-200 px-3 py-2 text-sm" placeholder="Kosongkan untuk default" />
+          </div>
+        </div>
+        <p class="text-[11px] text-slate-500">Jika kata sandi dikosongkan, sistem akan menggunakan default <span class="font-mono">laundry123</span>.</p>
+        <p id="form-status" class="text-xs text-slate-600"></p>
+        <div class="flex gap-2 justify-end">
+          <button type="button" id="btn-cancel" class="btn-secondary bg-slate-400">Batal</button>
+          <button type="submit" class="btn-primary md:w-auto">Simpan</button>
+        </div>
+      </form>
+    </div>
+
+    <div class="card">
+      <div class="text-xs text-slate-500 mb-1">Daftar User</div>
+      <table class="w-full text-xs mt-1">
+        <thead>
+          <tr class="text-left text-slate-500 border-b">
+            <th class="py-1">Nama</th>
+            <th class="py-1">Email</th>
+            <th class="py-1">Role</th>
+            <th class="py-1">Outlet</th>
+            <th class="py-1 text-right">Aksi</th>
+          </tr>
+        </thead>
+        <tbody id="user-body" class="divide-y"></tbody>
+      </table>
+      <p id="list-status" class="text-xs text-slate-600 mt-3"></p>
+    </div>
+  </main>
+
+  <script>
+    function getToken() {
+      return localStorage.getItem('token');
+    }
+
+    const formCard = document.getElementById('form-card');
+    const formTitle = document.getElementById('form-title');
+    const form = document.getElementById('user-form');
+    const listStatus = document.getElementById('list-status');
+    const formStatus = document.getElementById('form-status');
+
+    document.getElementById('btn-new').addEventListener('click', () => {
+      form.reset();
+      document.getElementById('user_id').value = '';
+      document.getElementById('email').disabled = false;
+      document.getElementById('password').value = '';
+      document.getElementById('password-wrapper').classList.remove('hidden');
+      formTitle.textContent = 'User baru';
+      formCard.classList.remove('hidden');
+    });
+
+    document.getElementById('btn-cancel').addEventListener('click', () => {
+      formCard.classList.add('hidden');
+    });
+
+    async function loadUsers() {
+      listStatus.textContent = 'Memuat data user...';
+      try {
+        const res = await fetch('/api/admin/users', {
+          headers: { 'Authorization': 'Bearer ' + getToken() },
+        });
+        const data = await res.json().catch(() => []);
+        const body = document.getElementById('user-body');
+        body.innerHTML = '';
+        data.forEach((u) => {
+          const tr = document.createElement('tr');
+          const outletText = u.outlet_id === null ? '-' : (u.outlet_id === 1 ? 'Outlet Pusat' : (u.outlet_id === 2 ? 'Outlet Cabang 1' : 'Outlet ' + u.outlet_id));
+          tr.innerHTML = `
+            <td class="py-1">${u.name}</td>
+            <td class="py-1">${u.email}</td>
+            <td class="py-1">${u.role}</td>
+            <td class="py-1">${outletText}</td>
+            <td class="py-1 text-right space-x-1">
+              <button class="text-xs text-primary underline" data-action="edit" data-id="${u.id}">Edit</button>
+              <button class="text-xs text-accent underline" data-action="reset" data-id="${u.id}">Reset Sandi</button>
+            </td>
+          `;
+          body.appendChild(tr);
+        });
+        listStatus.textContent = data.length ? '' : 'Belum ada user.';
+      } catch {
+        listStatus.textContent = 'Terjadi kesalahan memuat data user';
+      }
+    }
+
+    document.getElementById('user-body').addEventListener('click', async (e) => {
+      const target = e.target;
+      if (!(target instanceof HTMLElement)) return;
+      const action = target.getAttribute('data-action');
+      const id = target.getAttribute('data-id');
+      if (!action || !id) return;
+
+      if (action === 'edit') {
+        const row = target.closest('tr');
+        if (!row) return;
+        const tds = row.querySelectorAll('td');
+        document.getElementById('user_id').value = id;
+        document.getElementById('name').value = tds[0].textContent || '';
+        document.getElementById('email').value = tds[1].textContent || '';
+        document.getElementById('email').disabled = true;
+        document.getElementById('role').value = tds[2].textContent || '';
+        const outletText = tds[3].textContent || '';
+        const outletSelect = document.getElementById('outlet_id');
+        if (outletText.includes('Pusat')) outletSelect.value = '1';
+        else if (outletText.includes('Cabang 1')) outletSelect.value = '2';
+        else outletSelect.value = '';
+        document.getElementById('password-wrapper').classList.add('hidden');
+        formTitle.textContent = 'Edit user';
+        formCard.classList.remove('hidden');
+      }
+
+      if (action === 'reset') {
+        if (!confirm('Reset kata sandi user ini ke default?')) return;
+        formStatus.textContent = 'Mereset kata sandi...';
+        try {
+          const res = await fetch(`/api/admin/users/${id}/reset-password`, {
+            method: 'POST',
+            headers: {
+              'Content-Type': 'application/json',
+              'Authorization': 'Bearer ' + getToken(),
+            },
+            body: JSON.stringify({}),
+          });
+          const data = await res.json().catch(() => ({}));
+          formStatus.textContent = data.message || 'Password direset';
+        } catch {
+          formStatus.textContent = 'Gagal reset kata sandi';
+        }
+      }
+    });
+
+    form.addEventListener('submit', async (e) => {
+      e.preventDefault();
+      formStatus.textContent = 'Menyimpan...';
+      const id = document.getElementById('user_id').value;
+      const payload = {
+        name: document.getElementById('name').value,
+        email: document.getElementById('email').value,
+        role: document.getElementById('role').value,
+        outlet_id: document.getElementById('outlet_id').value ? Number(document.getElementById('outlet_id').value) : null,
+        password: document.getElementById('password').value || undefined,
+      };
+      try {
+        const url = id ? `/api/admin/users/${id}` : '/api/admin/users';
+        const method = id ? 'PUT' : 'POST';
+        const res = await fetch(url, {
+          method,
+          headers: {
+            'Content-Type': 'application/json',
+            'Authorization': 'Bearer ' + getToken(),
+          },
+          body: JSON.stringify(payload),
+        });
+        const data = await res.json().catch(() => ({}));
+        if (!res.ok) {
+          formStatus.textContent = data.message || 'Gagal menyimpan user';
+        } else {
+          formStatus.textContent = data.message || 'User tersimpan';
+          formCard.classList.add('hidden');
+          loadUsers();
+        }
+      } catch {
+        formStatus.textContent = 'Terjadi kesalahan menyimpan user';
+      }
+    });
+
+    loadUsers();
+  </script>
+</body>
+</html>

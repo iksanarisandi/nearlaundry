@@ -1,0 +1,317 @@
+Mini ERP Laundry – Cloudflare (Pages + Workers + D1 + KV)
+
+1. Tujuan Sistem
+
+Sistem sederhana untuk operasional laundry: absensi staf, produksi harian, logistik gudang, monitoring omzet, dan dashboard manajemen.
+
+2. Role Pengguna
+
+Admin
+
+Staff Gudang
+
+Staff Produksi
+
+3. Fitur Utama per Role
+ADMIN
+
+Input omzet harian per outlet.
+
+Dashboard bulan tertentu:
+
+Total omzet semua outlet.
+
+Omzet per outlet.
+
+Persentase pemakaian gas & BHP terhadap omzet.
+
+Tren pengeluaran (gaji, gas, BHP).
+
+Payroll (matrix gaji, adjustment).
+
+Validasi absensi & lembur.
+
+Manajemen user (tambah, edit, reset password).
+
+Manajemen outlet.
+
+STAFF GUDANG
+
+Lihat stok logistik.
+
+Kurangi stok setelah permintaan outlet.
+
+Buat invoice pengeluaran stok.
+
+STAFF PRODUKSI
+
+Absen masuk & pulang (geo).
+
+Input produksi: customer, nota, proses, qty, timestamp otomatis.
+
+Input pengeluaran harian: gas, detergent, plastik, makan.
+
+4. Teknologi & Deployment
+
+Backend: Hono (TypeScript) – deploy sebagai Cloudflare Pages Functions / Workers.
+
+Frontend: HTMX + Tailwind (mobile-first).
+
+Database: Cloudflare D1 (SQL).
+
+Storage: KV (opsional untuk session).
+
+Auth: JWT + bcrypt untuk password hashing.
+
+Deployment: Wrangler (wrangler deploy) atau GitHub push otomatis.
+
+5. Auth Flow
+
+User login: email + password.
+
+Password disimpan hashed dengan bcrypt.
+
+Response: JWT (role, user_id, outlet_id).
+
+Middleware cek role & akses.
+
+Admin dapat menambah user baru dan set role.
+
+6. Struktur Database (D1)
+users
+
+id
+
+name
+
+email (unique)
+
+password_hash
+
+role (admin / gudang / produksi)
+
+outlet_id (nullable)
+
+created_at
+
+outlets
+
+id
+
+name
+
+attendance
+
+id
+
+user_id
+
+type (in/out)
+
+timestamp
+
+lat
+
+lng
+
+production
+
+id
+
+user_id
+
+outlet_id
+
+customer_name
+
+nota_number
+
+process (cuci/kering/setrika/packing)
+
+qty
+
+timestamp
+
+expenses
+
+id
+
+user_id
+
+outlet_id
+
+category (gas/bhp/makan/detergent/plastik/dll)
+
+amount
+
+timestamp
+
+warehouse_items
+
+id
+
+name
+
+qty
+
+warehouse_logs
+
+id
+
+item_id
+
+qty_out
+
+outlet_id
+
+created_at
+
+revenue
+
+id
+
+outlet_id
+
+date
+
+amount
+
+payroll_matrix
+
+id
+
+user_id
+
+base_salary
+
+adjustment
+
+month
+
+year
+
+audit_logs
+
+id
+
+user_id
+
+action
+
+detail
+
+created_at
+
+7. Endpoint API (ringkas)
+Auth
+
+POST /api/login
+
+POST /api/admin/users (admin tambah user)
+
+Admin
+
+POST /api/revenue
+
+GET /api/dashboard
+
+GET /api/attendance/all
+
+GET /api/payroll
+
+POST /api/payroll/update
+
+Gudang
+
+GET /api/warehouse/items
+
+POST /api/warehouse/out
+
+Produksi
+
+POST /api/attendance
+
+POST /api/production
+
+POST /api/expenses
+
+8. Frontend Pages
+Admin
+
+Login
+
+Dashboard
+
+Omzet harian
+
+Absensi & lembur
+
+Payroll
+
+User management
+
+Stok & invoice gudang
+
+Gudang
+
+Stok
+
+Form keluarkan barang
+
+Invoice list
+
+Staf Produksi
+
+Absen
+
+Input produksi
+
+Input pengeluaran
+
+Riwayat harian
+
+9. Keamanan
+
+Password hashed (bcrypt).
+
+JWT signed HS256.
+
+Input sanitasi SQL.
+
+Limit data edit (produksi hanya hari yang sama).
+
+Logging semua aksi.
+
+10. Deploy Flow (Wrangler)
+
+wrangler d1 create database_name
+
+wrangler init
+
+Taruh API Hono di functions/
+
+Taruh frontend di root (HTMX + Tailwind)
+
+Set binding D1 di wrangler.toml
+
+wrangler deploy
+
+11. MVP Scope (Siap implementasi)
+
+Login + Role.
+
+Absen staf produksi (geo).
+
+Input produksi.
+
+Input pengeluaran.
+
+Stok gudang.
+
+Invoice gudang.
+
+Omzet harian.
+
+Dashboard admin dasar.
+
+Ini sudah cukup untuk operasional harian.

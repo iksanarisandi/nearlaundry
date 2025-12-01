@@ -1,0 +1,90 @@
+<!doctype html>
+<html lang="id" class="h-full">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>Absen Produksi - NearMe Laundry</title>
+  <link rel="stylesheet" href="/public/styles.css" />
+  <script src="/shared/nav.js" defer></script>
+</head>
+<body class="min-h-full flex flex-col bg-slate-100" onload="NearMeNav.ensureRole(['produksi'])">
+  <main class="flex-1 mx-auto w-full max-w-md px-4 py-4">
+    <div class="card">
+      <h1 class="text-base font-semibold mb-1">Absen Staf Produksi</h1>
+      <p class="text-xs text-slate-500 mb-4">Pastikan GPS diaktifkan sebelum absen.</p>
+      <p id="status" class="text-xs text-slate-600 mb-3"></p>
+      <div class="space-y-2">
+        <button class="btn-primary" onclick="doAbsen('in')">Absen Masuk</button>
+        <button class="btn-secondary" onclick="doAbsen('out')">Absen Pulang</button>
+      </div>
+    </div>
+  </main>
+
+  <nav class="fixed bottom-0 inset-x-0 bg-white border-t border-slate-200">
+    <div class="max-w-md mx-auto flex justify-around py-2 text-[11px]">
+      <button onclick="window.location.href='/produksi/absen.html'" class="flex flex-col items-center text-primary">
+        <span>Absen</span>
+      </button>
+      <button onclick="window.location.href='/produksi/produksi.html'" class="flex flex-col items-center text-slate-500">
+        <span>Produksi</span>
+      </button>
+      <button onclick="window.location.href='/produksi/pengeluaran.html'" class="flex flex-col items-center text-slate-500">
+        <span>Pengeluaran</span>
+      </button>
+      <button onclick="window.location.href='/produksi/riwayat.html'" class="flex flex-col items-center text-slate-500">
+        <span>Riwayat</span>
+      </button>
+      <button onclick="NearMeNav.logout()" class="flex flex-col items-center text-slate-500">
+        <span>Keluar</span>
+      </button>
+    </div>
+  </nav>
+
+  <script>
+    function getToken() {
+      return localStorage.getItem('token');
+    }
+
+    async function doAbsen(type) {
+      const statusEl = document.getElementById('status');
+      statusEl.textContent = 'Mengambil lokasi...';
+
+      if (!navigator.geolocation) {
+        statusEl.textContent = 'Perangkat tidak mendukung GPS';
+        return;
+      }
+
+      navigator.geolocation.getCurrentPosition(async (pos) => {
+        statusEl.textContent = 'Mengirim data absen...';
+        try {
+          const res = await fetch('/api/attendance', {
+            method: 'POST',
+            headers: {
+              'Content-Type': 'application/json',
+              'Authorization': 'Bearer ' + getToken(),
+            },
+            body: JSON.stringify({
+              type,
+              lat: pos.coords.latitude,
+              lng: pos.coords.longitude,
+            }),
+          });
+          const data = await res.json().catch(() => ({}));
+          if (!res.ok) {
+            statusEl.textContent = data.message || 'Gagal mencatat absen';
+          } else {
+            statusEl.textContent = data.message || 'Absen berhasil';
+          }
+        } catch {
+          statusEl.textContent = 'Terjadi kesalahan jaringan';
+        }
+      }, (err) => {
+        statusEl.textContent = 'Gagal mengambil lokasi: ' + (err.message || 'tidak diketahui');
+      }, {
+        enableHighAccuracy: true,
+        timeout: 15000,
+      });
+    }
+  </script>
+</body>
+</html>

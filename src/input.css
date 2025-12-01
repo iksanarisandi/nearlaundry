@@ -1,0 +1,27 @@
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+:root {
+  --color-primary: #16a34a; /* hijau */
+  --color-secondary: #f97316; /* oranye */
+  --color-accent: #0ea5e9; /* biru */
+}
+
+.btn-primary {
+  @apply w-full py-3 rounded-lg font-semibold text-white text-center;
+  background: linear-gradient(90deg, var(--color-primary), var(--color-secondary));
+}
+
+.btn-secondary {
+  @apply w-full py-2 rounded-lg font-medium text-white text-center;
+  background-color: var(--color-accent);
+}
+
+.card {
+  @apply bg-white rounded-xl shadow-md p-4;
+}
+
+body {
+  @apply bg-slate-100 text-slate-900;
+}

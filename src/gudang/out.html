@@ -1,0 +1,113 @@
+<!doctype html>
+<html lang="id" class="h-full">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>Keluarkan Barang Gudang - NearMe Laundry</title>
+  <link rel="stylesheet" href="/public/styles.css" />
+  <script src="/shared/nav.js" defer></script>
+</head>
+<body class="min-h-full flex flex-col bg-slate-100" onload="NearMeNav.ensureRole(['gudang'])">
+  <main class="flex-1 mx-auto w-full max-w-md px-4 py-4">
+    <div class="card">
+      <h1 class="text-base font-semibold mb-1">Keluarkan Barang</h1>
+      <p class="text-xs text-slate-500 mb-4">Kirim barang dari gudang ke outlet.</p>
+      <form id="out-form" class="space-y-3">
+        <div>
+          <label class="block text-xs font-medium text-slate-600 mb-1">Barang</label>
+          <select id="item_id" class="w-full rounded-lg border border-slate-200 px-3 py-2 text-sm" required></select>
+        </div>
+        <div>
+          <label class="block text-xs font-medium text-slate-600 mb-1">Qty keluar</label>
+          <input type="number" id="qty_out" min="1" class="w-full rounded-lg border border-slate-200 px-3 py-2 text-sm" required />
+        </div>
+        <div>
+          <label class="block text-xs font-medium text-slate-600 mb-1">Outlet tujuan</label>
+          <select id="outlet_id" class="w-full rounded-lg border border-slate-200 px-3 py-2 text-sm" required>
+            <option value="">Pilih outlet</option>
+            <option value="1">Outlet Pusat</option>
+            <option value="2">Outlet Cabang 1</option>
+          </select>
+        </div>
+        <p id="status" class="text-xs text-slate-600"></p>
+        <button type="submit" class="btn-primary mt-2">Simpan</button>
+      </form>
+    </div>
+  </main>
+
+  <nav class="fixed bottom-0 inset-x-0 bg-white border-t border-slate-200">
+    <div class="max-w-md mx-auto flex justify-around py-2 text-[11px]">
+      <button onclick="window.location.href='/gudang/stok.html'" class="flex flex-col items-center text-slate-500">
+        <span>Stok</span>
+      </button>
+      <button onclick="window.location.href='/gudang/out.html'" class="flex flex-col items-center text-primary">
+        <span>Keluarkan</span>
+      </button>
+      <button onclick="NearMeNav.logout()" class="flex flex-col items-center text-slate-500">
+        <span>Keluar</span>
+      </button>
+    </div>
+  </nav>
+
+  <script>
+    function getToken() {
+      return localStorage.getItem('token');
+    }
+
+    async function loadItems() {
+      const select = document.getElementById('item_id');
+      select.innerHTML = '<option value="">Memuat...</option>';
+      try {
+        const res = await fetch('/api/warehouse/items', {
+          headers: { 'Authorization': 'Bearer ' + getToken() },
+        });
+        const data = await res.json().catch(() => []);
+        select.innerHTML = '<option value="">Pilih barang</option>';
+        data.forEach((row) => {
+          const opt = document.createElement('option');
+          opt.value = row.id;
+          opt.textContent = `${row.name} (stok: ${row.qty})`;
+          select.appendChild(opt);
+        });
+      } catch {
+        select.innerHTML = '<option value="">Gagal memuat barang</option>';
+      }
+    }
+
+    const form = document.getElementById('out-form');
+    const statusEl = document.getElementById('status');
+
+    form.addEventListener('submit', async (e) => {
+      e.preventDefault();
+      statusEl.textContent = 'Menyimpan...';
+      const payload = {
+        item_id: Number(document.getElementById('item_id').value),
+        qty_out: Number(document.getElementById('qty_out').value),
+        outlet_id: Number(document.getElementById('outlet_id').value),
+      };
+      try {
+        const res = await fetch('/api/warehouse/out', {
+          method: 'POST',
+          headers: {
+            'Content-Type': 'application/json',
+            'Authorization': 'Bearer ' + getToken(),
+          },
+          body: JSON.stringify(payload),
+        });
+        const data = await res.json().catch(() => ({}));
+        if (!res.ok) {
+          statusEl.textContent = data.message || 'Gagal mencatat pengeluaran barang';
+        } else {
+          statusEl.textContent = data.message || 'Pengeluaran barang tersimpan';
+          form.reset();
+          loadItems();
+        }
+      } catch {
+        statusEl.textContent = 'Terjadi kesalahan jaringan';
+      }
+    });
+
+    loadItems();
+  </script>
+</body>
+</html>

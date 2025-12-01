@@ -1,0 +1,122 @@
+<!doctype html>
+<html lang="id" class="h-full">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>Absensi & Lembur - NearMe Laundry</title>
+  <link rel="stylesheet" href="/styles.css" />
+  <script src="/shared/nav.js" defer></script>
+</head>
+<body class="min-h-full flex flex-col bg-slate-100" onload="NearMeNav.ensureRole(['admin'])">
+  <header class="bg-white shadow-sm">
+    <div class="mx-auto max-w-5xl px-4 py-3 flex items-center justify-between">
+      <div class="flex items-center gap-3">
+        <img src="/icon.JPG" alt="Logo NearMe Laundry" class="h-8 w-8 rounded-full object-cover" />
+        <div>
+          <div class="font-semibold text-primary text-sm">NearMe Laundry - Admin</div>
+          <div class="text-[11px] text-slate-500">Mini ERP Laundry Harian</div>
+        </div>
+      </div>
+      <nav class="flex items-center gap-3 text-[11px] text-slate-600">
+        <a href="/admin/dashboard.html">Dashboard</a>
+        <a href="/admin/omzet.html">Omzet</a>
+        <a href="/admin/absensi.html" class="text-primary font-semibold">Absensi</a>
+        <a href="/admin/payroll.html">Payroll</a>
+        <a href="/admin/users.html">User</a>
+        <button onclick="NearMeNav.logout()" class="ml-2 text-red-500">Keluar</button>
+      </nav>
+    </div>
+  </header>
+
+  <main class="flex-1 mx-auto w-full max-w-5xl px-4 py-4">
+    <div class="mb-4 flex flex-col md:flex-row md:items-end md:justify-between gap-3">
+      <div>
+        <h1 class="text-lg font-semibold">Absensi &amp; Lembur</h1>
+        <p class="text-xs text-slate-500">Lihat dan validasi absensi staf per hari.</p>
+      </div>
+      <div class="flex items-center gap-2 text-xs">
+        <div>
+          <label class="block text-slate-600 mb-1">Tanggal</label>
+          <input type="date" id="date" class="rounded-lg border border-slate-200 px-2 py-1" />
+        </div>
+        <button id="btn-load" class="btn-secondary mt-4 md:mt-0">Terapkan</button>
+      </div>
+    </div>
+
+    <div class="card">
+      <table class="w-full text-xs mt-1">
+        <thead>
+          <tr class="text-left text-slate-500 border-b">
+            <th class="py-1">Nama</th>
+            <th class="py-1">Role</th>
+            <th class="py-1">Tipe</th>
+            <th class="py-1">Waktu</th>
+            <th class="py-1">Lokasi</th>
+          </tr>
+        </thead>
+        <tbody id="att-body" class="divide-y"></tbody>
+      </table>
+      <p id="status" class="text-xs text-slate-600 mt-3"></p>
+    </div>
+  </main>
+
+  <script>
+    function getToken() {
+      return localStorage.getItem('token');
+    }
+
+    function formatTime(iso) {
+      if (!iso) return '-';
+      const d = new Date(iso);
+      if (Number.isNaN(d.getTime())) return iso;
+      return d.toLocaleTimeString('id-ID', { hour: '2-digit', minute: '2-digit', second: '2-digit' });
+    }
+
+    async function loadAttendance(dateStr) {
+      const statusEl = document.getElementById('status');
+      statusEl.textContent = 'Memuat absensi...';
+      try {
+        const params = new URLSearchParams({ date: dateStr });
+        const res = await fetch('/api/attendance/all?' + params.toString(), {
+          headers: { 'Authorization': 'Bearer ' + getToken() },
+        });
+        const data = await res.json().catch(() => []);
+        if (!res.ok) {
+          statusEl.textContent = data.message || 'Gagal memuat absensi';
+          return;
+        }
+        const body = document.getElementById('att-body');
+        body.innerHTML = '';
+        data.forEach((row) => {
+          const tr = document.createElement('tr');
+          const loc = row.lat != null && row.lng != null ? `${row.lat.toFixed(5)}, ${row.lng.toFixed(5)}` : '-';
+          tr.innerHTML = `
+            <td class="py-1">${row.name}</td>
+            <td class="py-1">${row.role}</td>
+            <td class="py-1">${row.type === 'in' ? 'Masuk' : 'Pulang'}</td>
+            <td class="py-1">${formatTime(row.timestamp)}</td>
+            <td class="py-1">${loc}</td>
+          `;
+          body.appendChild(tr);
+        });
+        statusEl.textContent = data.length ? '' : 'Belum ada data absensi.';
+      } catch {
+        statusEl.textContent = 'Terjadi kesalahan memuat absensi';
+      }
+    }
+
+    const dateInput = document.getElementById('date');
+    const btnLoad = document.getElementById('btn-load');
+
+    const today = new Date();
+    dateInput.valueAsDate = today;
+
+    btnLoad.addEventListener('click', () => {
+      if (!dateInput.value) return;
+      loadAttendance(dateInput.value);
+    });
+
+    loadAttendance(dateInput.value);
+  </script>
+</body>
+</html>
