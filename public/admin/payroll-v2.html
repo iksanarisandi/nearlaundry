@@ -6,6 +6,7 @@
   <title>Payroll - NearMe Laundry</title>
   <link rel="stylesheet" href="/styles.css" />
   <script src="/shared/nav.js" defer></script>
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js"></script>
 </head>
 <body class="min-h-full flex flex-col bg-slate-100" onload="NearMeNav.ensureRole(['admin'])">
   <header class="bg-white shadow-sm">
@@ -37,6 +38,9 @@
         <p class="text-xs text-slate-500">Atur gaji, lembur, tunjangan, dan potongan.</p>
       </div>
       <div class="flex items-center gap-2 text-xs">
+        <select id="outlet" class="rounded-lg border px-2 py-1">
+          <option value="">Semua Outlet</option>
+        </select>
         <select id="month" class="rounded-lg border px-2 py-1">
           <option value="1">Januari</option><option value="2">Februari</option>
           <option value="3">Maret</option><option value="4">April</option>
@@ -141,10 +145,28 @@
   <script>
     function getToken() { return localStorage.getItem('token'); }
     function formatRupiah(v) { return 'Rp ' + (v || 0).toLocaleString('id-ID'); }
+    
+    const monthNames = ['', 'Januari', 'Februari', 'Maret', 'April', 'Mei', 'Juni', 
+                        'Juli', 'Agustus', 'September', 'Oktober', 'November', 'Desember'];
 
     const today = new Date();
     document.getElementById('month').value = today.getMonth() + 1;
     document.getElementById('year').value = today.getFullYear();
+
+    let payrollData = [];
+    let outletsData = [];
+
+    async function loadOutlets() {
+      const res = await fetch('/api/admin/outlets', {
+        headers: { 'Authorization': 'Bearer ' + getToken() }
+      });
+      outletsData = await res.json();
+      const select = document.getElementById('outlet');
+      select.innerHTML = '<option value="">Semua Outlet</option>';
+      outletsData.forEach(o => {
+        select.innerHTML += `<option value="${o.id}">${o.name}</option>`;
+      });
+    }
 
     async function loadPayroll() {
       const month = document.getElementById('month').value;
@@ -153,11 +175,11 @@
       const res = await fetch(`/api/payroll-v2?month=${month}&year=${year}`, {
         headers: { 'Authorization': 'Bearer ' + getToken() }
       });
-      const data = await res.json();
+      payrollData = await res.json();
       
       const body = document.getElementById('payroll-body');
       body.innerHTML = '';
-      data.forEach(p => {
+      payrollData.forEach(p => {
         const tr = document.createElement('tr');
         tr.innerHTML = `
           <td class="py-2">${p.name}</td>
@@ -166,12 +188,123 @@
           <td class="py-2 text-right text-green-600">${formatRupiah(p.pendapatan)}</td>
           <td class="py-2 text-right text-red-500">${formatRupiah(p.potongan)}</td>
           <td class="py-2 text-right font-semibold">${formatRupiah(p.gaji_bersih)}</td>
-          <td class="py-2 text-right">
+          <td class="py-2 text-right space-x-1">
             <button onclick='editPayroll(${JSON.stringify(p)})' class="text-accent underline">Edit</button>
+            <button onclick='generateSlipPDF(${JSON.stringify(p)})' class="text-green-600 underline">Slip PDF</button>
           </td>
         `;
         body.appendChild(tr);
       });
+    }
+
+    function generateSlipPDF(p) {
+      const { jsPDF } = window.jspdf;
+      const doc = new jsPDF();
+      
+      const month = document.getElementById('month').value;
+      const year = document.getElementById('year').value;
+      const outletId = document.getElementById('outlet').value;
+      const outletName = outletId ? outletsData.find(o => o.id == outletId)?.name : 'Semua Outlet';
+      
+      // Header
+      doc.setFontSize(16);
+      doc.setFont('helvetica', 'bold');
+      doc.text('SLIP GAJI KARYAWAN', 105, 20, { align: 'center' });
+      
+      doc.setFontSize(10);
+      doc.setFont('helvetica', 'normal');
+      doc.text('NearMe Laundry', 105, 28, { align: 'center' });
+      
+      // Info
+      doc.setFontSize(10);
+      let y = 45;
+      doc.text(`Tahun       : ${year}`, 20, y);
+      doc.text(`Bulan       : ${monthNames[month]}`, 20, y + 7);
+      doc.text(`Cabang      : ${outletName}`, 20, y + 14);
+      doc.text(`Nama Staff  : ${p.name}`, 20, y + 21);
+      
+      // Line
+      y = 75;
+      doc.setLineWidth(0.5);
+      doc.line(20, y, 190, y);
+      
+      // Rincian Gaji
+      y = 85;
+      doc.setFont('helvetica', 'bold');
+      doc.text('RINCIAN GAJI', 20, y);
+      
+      doc.setFont('helvetica', 'normal');
+      y += 10;
+      
+      const items = [
+        ['Gaji Pokok', p.gaji_pokok || 0],
+        ['Uang Makan', p.uang_makan || 0],
+        ['Uang Transport', p.uang_transport || 0],
+        ['Lembur Jam (' + (p.lembur_jam || 0) + ' jam x Rp ' + (p.lembur_jam_rate || 7000).toLocaleString() + ')', p.lembur_jam_total || 0],
+        ['Lembur Libur (' + (p.lembur_libur || 0) + ' shift x Rp ' + (p.lembur_libur_rate || 35000).toLocaleString() + ')', p.lembur_libur_total || 0],
+        ['Tunjangan Jabatan', p.tunjangan_jabatan || 0],
+        ['THR', p.thr || 0],
+        ['Komisi', p.komisi_total || 0],
+      ];
+      
+      items.forEach(([label, value]) => {
+        if (value > 0) {
+          doc.text(label, 25, y);
+          doc.text('Rp ' + value.toLocaleString('id-ID'), 180, y, { align: 'right' });
+          y += 7;
+        }
+      });
+      
+      // Subtotal Pendapatan
+      y += 3;
+      doc.setFont('helvetica', 'bold');
+      doc.text('Total Pendapatan', 25, y);
+      doc.text('Rp ' + (p.pendapatan || 0).toLocaleString('id-ID'), 180, y, { align: 'right' });
+      
+      // Potongan
+      y += 15;
+      doc.text('POTONGAN', 20, y);
+      doc.setFont('helvetica', 'normal');
+      y += 10;
+      
+      const potongan = [
+        ['Denda', p.denda || 0],
+        ['Kasbon', p.kasbon || 0],
+      ];
+      
+      potongan.forEach(([label, value]) => {
+        if (value > 0) {
+          doc.text(label, 25, y);
+          doc.text('Rp ' + value.toLocaleString('id-ID'), 180, y, { align: 'right' });
+          y += 7;
+        }
+      });
+      
+      // Total Potongan
+      y += 3;
+      doc.setFont('helvetica', 'bold');
+      doc.text('Total Potongan', 25, y);
+      doc.text('Rp ' + (p.potongan || 0).toLocaleString('id-ID'), 180, y, { align: 'right' });
+      
+      // Line
+      y += 10;
+      doc.line(20, y, 190, y);
+      
+      // Gaji Bersih
+      y += 10;
+      doc.setFontSize(12);
+      doc.text('GAJI BERSIH', 25, y);
+      doc.text('Rp ' + (p.gaji_bersih || 0).toLocaleString('id-ID'), 180, y, { align: 'right' });
+      
+      // Footer
+      y += 25;
+      doc.setFontSize(8);
+      doc.setFont('helvetica', 'normal');
+      doc.text('Slip gaji ini digenerate secara otomatis oleh sistem NearMe Laundry', 105, y, { align: 'center' });
+      
+      // Save
+      const filename = `slip_gaji_${p.name.replace(/\s+/g, '_')}_${monthNames[month]}_${year}.pdf`;
+      doc.save(filename);
     }
 
     function editPayroll(p) {
@@ -244,6 +377,7 @@
       }
     });
 
+    loadOutlets();
     loadPayroll();
   </script>
 </body>
