@@ -12,5 +12,5 @@ binding = "DB"
 database_name = "nearme_laundry_db"
 database_id = "251cca25-c423-4146-9939-26bfbec4bc84"
 
-[vars]
-JWT_SECRET = "nearme-laundry-secret-key-change-in-production"
+# JWT_SECRET harus diset via: wrangler secret put JWT_SECRET
+# Jangan simpan secret di file ini!
