@@ -87,7 +87,11 @@
         </div>
         <div>
           <label class="block text-xs text-slate-600 mb-1">Uang Makan</label>
-          <input type="number" id="uang_makan" class="w-full rounded border px-2 py-1 text-sm" />
+          <div class="flex gap-1">
+            <input type="number" id="uang_makan" class="flex-1 rounded border px-2 py-1 text-sm" />
+            <button type="button" onclick="calcAllowances()" class="text-[10px] bg-accent text-white px-2 rounded">Auto</button>
+          </div>
+          <p id="uangmakan-info" class="text-[10px] text-slate-500 mt-1"></p>
         </div>
         <div>
           <label class="block text-xs text-slate-600 mb-1">Uang Transport</label>
@@ -111,14 +115,23 @@
         </div>
         <div>
           <label class="block text-xs text-slate-600 mb-1">Tunjangan Jabatan</label>
-          <input type="number" id="tunjangan_jabatan" class="w-full rounded border px-2 py-1 text-sm" />
+          <div class="flex gap-1">
+            <input type="number" id="tunjangan_jabatan" class="flex-1 rounded border px-2 py-1 text-sm" />
+            <button type="button" onclick="calcAllowances()" class="text-[10px] bg-accent text-white px-2 rounded">Auto</button>
+          </div>
+          <p id="tunjangan-info" class="text-[10px] text-slate-500 mt-1"></p>
         </div>
         <div>
           <label class="block text-xs text-slate-600 mb-1">THR</label>
           <input type="number" id="thr" class="w-full rounded border px-2 py-1 text-sm" />
         </div>
         <div>
-          <label class="block text-xs text-slate-600 mb-1">Denda</label>
+          <label class="block text-xs text-slate-600 mb-1">Denda Keterlambatan</label>
+          <input type="number" id="denda_terlambat" class="w-full rounded border px-2 py-1 text-sm bg-slate-100" readonly />
+          <p id="denda-info" class="text-[10px] text-slate-500 mt-1"></p>
+        </div>
+        <div>
+          <label class="block text-xs text-slate-600 mb-1">Denda Lainnya</label>
           <input type="number" id="denda" class="w-full rounded border px-2 py-1 text-sm" />
         </div>
         <div>
@@ -268,7 +281,8 @@
       y += 10;
       
       const potongan = [
-        ['Denda', p.denda || 0],
+        ['Denda Keterlambatan', p.denda_terlambat || 0],
+        ['Denda Lainnya', p.denda || 0],
         ['Kasbon', p.kasbon || 0],
       ];
       
@@ -320,13 +334,61 @@
       document.getElementById('lembur_libur_rate').value = p.lembur_libur_rate || 35000;
       document.getElementById('tunjangan_jabatan').value = p.tunjangan_jabatan || 0;
       document.getElementById('thr').value = p.thr || 0;
+      document.getElementById('denda_terlambat').value = p.denda_terlambat || 0;
       document.getElementById('denda').value = p.denda || 0;
       document.getElementById('kasbon').value = p.kasbon || 0;
       document.getElementById('komisi_total').value = p.komisi_total || 0;
+      
+      // Clear info texts
+      document.getElementById('tunjangan-info').textContent = '';
+      document.getElementById('uangmakan-info').textContent = '';
+      document.getElementById('denda-info').textContent = '';
     }
 
     function hideForm() {
       document.getElementById('edit-form').classList.add('hidden');
+    }
+
+    async function calcAllowances() {
+      const user_id = document.getElementById('edit_user_id').value;
+      const month = document.getElementById('month').value;
+      const year = document.getElementById('year').value;
+      
+      const statusEl = document.getElementById('form-status');
+      statusEl.textContent = 'Menghitung tunjangan...';
+      statusEl.className = 'text-xs text-slate-600 mb-2';
+      
+      try {
+        const res = await fetch(`/api/payroll-v2/allowances/${user_id}?month=${month}&year=${year}`, {
+          headers: { 'Authorization': 'Bearer ' + getToken() }
+        });
+        const data = await res.json();
+        
+        if (!res.ok) {
+          statusEl.textContent = data.message || 'Gagal menghitung tunjangan';
+          statusEl.className = 'text-xs text-red-500 mb-2';
+          return;
+        }
+        
+        // Populate fields
+        document.getElementById('tunjangan_jabatan').value = data.tunjangan_jabatan || 0;
+        document.getElementById('uang_makan').value = data.uang_makan_total || 0;
+        document.getElementById('denda_terlambat').value = data.denda_total || 0;
+        
+        // Show formula info
+        document.getElementById('tunjangan-info').textContent = 
+          `Masa kerja: ${data.masa_kerja_bulan} bulan. ${data.tunjangan_jabatan_formula || ''}`;
+        document.getElementById('uangmakan-info').textContent = 
+          `${data.attendance_count} hari x ${formatRupiah(data.uang_makan_rate)} = ${formatRupiah(data.uang_makan_total)}`;
+        document.getElementById('denda-info').textContent = 
+          data.late_count > 0 ? `${data.late_count} hari terlambat x ${formatRupiah(data.denda_per_late)} = ${formatRupiah(data.denda_total)}` : 'Tidak ada keterlambatan';
+        
+        statusEl.textContent = `Tunjangan dihitung otomatis (masa kerja: ${data.masa_kerja_bulan} bulan, kehadiran: ${data.attendance_count} hari, terlambat: ${data.late_count} hari)`;
+        statusEl.className = 'text-xs text-green-600 mb-2';
+      } catch (err) {
+        statusEl.textContent = 'Error: ' + err.message;
+        statusEl.className = 'text-xs text-red-500 mb-2';
+      }
     }
 
     async function calcCommission() {
@@ -359,6 +421,7 @@
         lembur_libur_rate: Number(document.getElementById('lembur_libur_rate').value) || 35000,
         tunjangan_jabatan: Number(document.getElementById('tunjangan_jabatan').value) || 0,
         thr: Number(document.getElementById('thr').value) || 0,
+        denda_terlambat: Number(document.getElementById('denda_terlambat').value) || 0,
         denda: Number(document.getElementById('denda').value) || 0,
         kasbon: Number(document.getElementById('kasbon').value) || 0,
         komisi_total: Number(document.getElementById('komisi_total').value) || 0

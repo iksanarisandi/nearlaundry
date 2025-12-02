@@ -53,7 +53,7 @@
             <input type="email" id="email" class="w-full rounded-lg border border-slate-200 px-3 py-2 text-sm" required />
           </div>
         </div>
-        <div class="grid grid-cols-1 md:grid-cols-3 gap-3">
+        <div class="grid grid-cols-1 md:grid-cols-2 gap-3">
           <div>
             <label class="block text-xs font-medium text-slate-600 mb-1">Role</label>
             <select id="role" class="w-full rounded-lg border border-slate-200 px-3 py-2 text-sm" required>
@@ -71,6 +71,13 @@
               <option value="1">Outlet Pusat</option>
               <option value="2">Outlet Cabang 1</option>
             </select>
+          </div>
+        </div>
+        <div class="grid grid-cols-1 md:grid-cols-2 gap-3">
+          <div>
+            <label class="block text-xs font-medium text-slate-600 mb-1">Tanggal Mulai Kerja</label>
+            <input type="date" id="join_date" class="w-full rounded-lg border border-slate-200 px-3 py-2 text-sm" />
+            <p class="text-[10px] text-slate-500 mt-1">Untuk perhitungan masa kerja & tunjangan</p>
           </div>
           <div id="password-wrapper">
             <label class="block text-xs font-medium text-slate-600 mb-1">Kata sandi (opsional)</label>
@@ -95,6 +102,7 @@
             <th class="py-1">Email</th>
             <th class="py-1">Role</th>
             <th class="py-1">Outlet</th>
+            <th class="py-1">Mulai Kerja</th>
             <th class="py-1 text-right">Aksi</th>
           </tr>
         </thead>
@@ -141,13 +149,15 @@
         data.forEach((u) => {
           const tr = document.createElement('tr');
           const outletText = u.outlet_id === null ? '-' : (u.outlet_id === 1 ? 'Outlet Pusat' : (u.outlet_id === 2 ? 'Outlet Cabang 1' : 'Outlet ' + u.outlet_id));
+          const joinDateText = u.join_date ? u.join_date : '-';
           tr.innerHTML = `
             <td class="py-1">${u.name}</td>
             <td class="py-1">${u.email}</td>
             <td class="py-1">${u.role}</td>
             <td class="py-1">${outletText}</td>
+            <td class="py-1">${joinDateText}</td>
             <td class="py-1 text-right space-x-1">
-              <button class="text-xs text-primary underline" data-action="edit" data-id="${u.id}">Edit</button>
+              <button class="text-xs text-primary underline" data-action="edit" data-id="${u.id}" data-join="${u.join_date || ''}">Edit</button>
               <button class="text-xs text-accent underline" data-action="reset" data-id="${u.id}">Reset Sandi</button>
             </td>
           `;
@@ -180,6 +190,7 @@
         if (outletText.includes('Pusat')) outletSelect.value = '1';
         else if (outletText.includes('Cabang 1')) outletSelect.value = '2';
         else outletSelect.value = '';
+        document.getElementById('join_date').value = target.getAttribute('data-join') || '';
         document.getElementById('password-wrapper').classList.add('hidden');
         formTitle.textContent = 'Edit user';
         formCard.classList.remove('hidden');
@@ -214,6 +225,7 @@
         email: document.getElementById('email').value,
         role: document.getElementById('role').value,
         outlet_id: document.getElementById('outlet_id').value ? Number(document.getElementById('outlet_id').value) : null,
+        join_date: document.getElementById('join_date').value || null,
         password: document.getElementById('password').value || undefined,
       };
       try {
