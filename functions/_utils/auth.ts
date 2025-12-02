@@ -4,7 +4,7 @@ import type { Env } from '../index';
 
 export type UserToken = {
   sub: number;
-  role: 'admin' | 'gudang' | 'produksi';
+  role: 'admin' | 'gudang' | 'produksi' | 'kurir';
   outlet_id: number | null;
 };
 

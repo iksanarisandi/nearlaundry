@@ -1,0 +1,180 @@
+<!doctype html>
+<html lang="id" class="h-full">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>Pengeluaran Harian - NearMe Laundry</title>
+  <link rel="stylesheet" href="/styles.css" />
+  <script src="/shared/nav.js" defer></script>
+</head>
+<body class="min-h-full flex flex-col bg-slate-100" onload="NearMeNav.ensureRole(['kurir'])">
+  <main class="flex-1 mx-auto w-full max-w-md px-4 py-4 pb-20">
+    <div class="card">
+      <h1 class="text-base font-semibold mb-1">Pengeluaran Harian</h1>
+      <p class="text-xs text-slate-500 mb-4">Catat pengeluaran BHP, DLL, atau Gas.</p>
+      <form id="expense-form" class="space-y-3">
+        <div>
+          <label class="block text-xs font-medium text-slate-600 mb-1">Kategori *</label>
+          <select id="category" class="w-full rounded-lg border border-slate-200 px-3 py-2 text-sm" required>
+            <option value="">Pilih kategori</option>
+            <option value="BHP">BHP (Bahan Habis Pakai)</option>
+            <option value="DLL">DLL (Lain-lain)</option>
+            <option value="GAS">GAS</option>
+          </select>
+        </div>
+
+        <div id="subcategory-wrapper" class="hidden">
+          <label class="block text-xs font-medium text-slate-600 mb-1">Sub Kategori BHP *</label>
+          <select id="subcategory" class="w-full rounded-lg border border-slate-200 px-3 py-2 text-sm">
+            <option value="">Pilih sub kategori</option>
+            <optgroup label="Uang Makan">
+              <option value="uang makan lembur">Uang Makan Lembur</option>
+              <option value="uang makan target omzet">Uang Makan Target Omzet</option>
+            </optgroup>
+            <optgroup label="Bahan Cuci">
+              <option value="rinso">Rinso</option>
+              <option value="emulsi">Emulsi</option>
+              <option value="cuka">Cuka</option>
+              <option value="baking soda">Baking Soda</option>
+              <option value="sabun kodok">Sabun Kodok</option>
+              <option value="penghilang noda">Penghilang Noda</option>
+            </optgroup>
+            <optgroup label="Pewangi">
+              <option value="parfum allison">Parfum Allison</option>
+              <option value="parfum pink blossom">Parfum Pink Blossom</option>
+              <option value="parfum molto">Parfum Molto</option>
+              <option value="semprot parfum">Semprot Parfum</option>
+            </optgroup>
+            <optgroup label="Plastik">
+              <option value="plastik 7">Plastik 7</option>
+              <option value="plastik 12">Plastik 12</option>
+              <option value="plastik 15">Plastik 15</option>
+              <option value="plastik 20">Plastik 20</option>
+              <option value="plastik satuan">Plastik Satuan</option>
+              <option value="plastik sepatu">Plastik Sepatu</option>
+            </optgroup>
+            <optgroup label="Perlengkapan">
+              <option value="lakban">Lakban</option>
+              <option value="hanger">Hanger</option>
+              <option value="kertas print">Kertas Print</option>
+              <option value="roll bulu">Roll Bulu</option>
+              <option value="wipoll">Wipoll</option>
+            </optgroup>
+          </select>
+        </div>
+
+        <div id="keterangan-wrapper" class="hidden">
+          <label class="block text-xs font-medium text-slate-600 mb-1">Keterangan *</label>
+          <input type="text" id="keterangan" class="w-full rounded-lg border border-slate-200 px-3 py-2 text-sm" placeholder="Jelaskan pengeluaran" />
+        </div>
+
+        <div>
+          <label class="block text-xs font-medium text-slate-600 mb-1">Nominal (Rp) *</label>
+          <input type="number" id="amount" min="1" class="w-full rounded-lg border border-slate-200 px-3 py-2 text-sm" required />
+        </div>
+        <p id="status" class="text-xs text-slate-600"></p>
+        <button type="submit" class="btn-primary mt-2">Simpan</button>
+      </form>
+    </div>
+  </main>
+
+  <nav class="fixed bottom-0 inset-x-0 bg-white border-t border-slate-200">
+    <div class="max-w-md mx-auto flex justify-around py-2 text-[11px]">
+      <button onclick="window.location.href='/kurir/absen.html'" class="flex flex-col items-center text-slate-500">Absen</button>
+      <button onclick="window.location.href='/kurir/delivery.html'" class="flex flex-col items-center text-slate-500">Antar/Jemput</button>
+      <button onclick="window.location.href='/kurir/produksi.html'" class="flex flex-col items-center text-slate-500">Produksi</button>
+      <button onclick="window.location.href='/kurir/pengeluaran.html'" class="flex flex-col items-center text-primary">Pengeluaran</button>
+      <button onclick="window.location.href='/kurir/riwayat.html'" class="flex flex-col items-center text-slate-500">Riwayat</button>
+      <button onclick="NearMeNav.logout()" class="flex flex-col items-center text-slate-500">Keluar</button>
+    </div>
+  </nav>
+
+  <script>
+    function getToken() { return localStorage.getItem('token'); }
+
+    const categorySelect = document.getElementById('category');
+    const subcategoryWrapper = document.getElementById('subcategory-wrapper');
+    const subcategorySelect = document.getElementById('subcategory');
+    const keteranganWrapper = document.getElementById('keterangan-wrapper');
+    const keteranganInput = document.getElementById('keterangan');
+
+    categorySelect.addEventListener('change', () => {
+      const val = categorySelect.value;
+      if (val === 'BHP') {
+        subcategoryWrapper.classList.remove('hidden');
+        subcategorySelect.required = true;
+        keteranganWrapper.classList.add('hidden');
+        keteranganInput.required = false;
+      } else if (val === 'DLL') {
+        subcategoryWrapper.classList.add('hidden');
+        subcategorySelect.required = false;
+        keteranganWrapper.classList.remove('hidden');
+        keteranganInput.required = true;
+      } else {
+        subcategoryWrapper.classList.add('hidden');
+        subcategorySelect.required = false;
+        keteranganWrapper.classList.add('hidden');
+        keteranganInput.required = false;
+      }
+    });
+
+    const form = document.getElementById('expense-form');
+    const statusEl = document.getElementById('status');
+
+    form.addEventListener('submit', async (e) => {
+      e.preventDefault();
+      statusEl.textContent = 'Menyimpan...';
+      statusEl.className = 'text-xs text-slate-600';
+
+      const cat = categorySelect.value;
+      let finalCategory = cat;
+
+      if (cat === 'BHP') {
+        if (!subcategorySelect.value) {
+          statusEl.textContent = 'Pilih sub kategori BHP';
+          statusEl.className = 'text-xs text-red-500';
+          return;
+        }
+        finalCategory = 'BHP - ' + subcategorySelect.value;
+      } else if (cat === 'DLL') {
+        if (!keteranganInput.value.trim()) {
+          statusEl.textContent = 'Isi keterangan untuk DLL';
+          statusEl.className = 'text-xs text-red-500';
+          return;
+        }
+        finalCategory = 'DLL - ' + keteranganInput.value.trim();
+      }
+
+      const payload = {
+        category: finalCategory,
+        amount: Number(document.getElementById('amount').value),
+      };
+
+      try {
+        const res = await fetch('/api/expenses', {
+          method: 'POST',
+          headers: {
+            'Content-Type': 'application/json',
+            'Authorization': 'Bearer ' + getToken(),
+          },
+          body: JSON.stringify(payload),
+        });
+        const data = await res.json().catch(() => ({}));
+        if (!res.ok) {
+          statusEl.textContent = data.message || 'Gagal menyimpan pengeluaran';
+          statusEl.className = 'text-xs text-red-500';
+        } else {
+          statusEl.textContent = data.message || 'Pengeluaran tersimpan';
+          statusEl.className = 'text-xs text-green-600';
+          form.reset();
+          subcategoryWrapper.classList.add('hidden');
+          keteranganWrapper.classList.add('hidden');
+        }
+      } catch {
+        statusEl.textContent = 'Terjadi kesalahan jaringan';
+        statusEl.className = 'text-xs text-red-500';
+      }
+    });
+  </script>
+</body>
+</html>

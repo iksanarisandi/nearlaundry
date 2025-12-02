@@ -21,7 +21,7 @@ app.post('/', async (c) => {
   if (!name || !email || !role) {
     return c.json({ message: 'Nama, email, dan role wajib diisi' }, 400);
   }
-  if (!['admin','gudang','produksi'].includes(role)) {
+  if (!['admin','gudang','produksi','kurir'].includes(role)) {
     return c.json({ message: 'Role tidak valid' }, 400);
   }
 
@@ -55,7 +55,7 @@ app.put('/:id', async (c) => {
     return c.json({ message: 'Nama dan role wajib diisi' }, 400);
   }
 
-  if (!['admin','gudang','produksi'].includes(role)) {
+  if (!['admin','gudang','produksi','kurir'].includes(role)) {
     return c.json({ message: 'Role tidak valid' }, 400);
   }
 

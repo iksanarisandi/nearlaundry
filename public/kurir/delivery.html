@@ -1,0 +1,124 @@
+<!doctype html>
+<html lang="id" class="h-full">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>Antar/Jemput - NearMe Laundry</title>
+  <link rel="stylesheet" href="/styles.css" />
+  <script src="/shared/nav.js" defer></script>
+</head>
+<body class="min-h-full flex flex-col bg-slate-100" onload="NearMeNav.ensureRole(['kurir'])">
+  <main class="flex-1 mx-auto w-full max-w-md px-4 py-4 pb-20">
+    <!-- Menu Utama -->
+    <div id="menu-utama" class="card">
+      <h1 class="text-base font-semibold mb-3">Antar / Jemput Pakaian</h1>
+      <p class="text-xs text-slate-500 mb-4">Pilih jenis pengiriman.</p>
+      <div class="grid grid-cols-2 gap-3">
+        <button onclick="showForm('antar')" class="py-4 rounded-lg bg-green-500 text-white font-semibold text-sm">🚚 Antar Pakaian</button>
+        <button onclick="showForm('jemput')" class="py-4 rounded-lg bg-blue-500 text-white font-semibold text-sm">📦 Jemput Pakaian</button>
+      </div>
+    </div>
+
+    <!-- Form Input -->
+    <div id="form-input" class="card hidden">
+      <div class="flex items-center justify-between mb-3">
+        <h2 id="form-title" class="text-base font-semibold">Antar Pakaian</h2>
+        <button onclick="backToMenu()" class="text-xs text-slate-500 underline">← Kembali</button>
+      </div>
+      <form id="delivery-form" class="space-y-3">
+        <input type="hidden" id="type" />
+        <div>
+          <label class="block text-xs font-medium text-slate-600 mb-1">Nama Pelanggan *</label>
+          <input type="text" id="customer_name" class="w-full rounded-lg border border-slate-200 px-3 py-2 text-sm" required />
+        </div>
+        <div>
+          <label class="block text-xs font-medium text-slate-600 mb-1">Alamat *</label>
+          <textarea id="address" rows="2" class="w-full rounded-lg border border-slate-200 px-3 py-2 text-sm" required></textarea>
+        </div>
+        <div>
+          <label class="block text-xs font-medium text-slate-600 mb-1">Nomor Nota</label>
+          <input type="text" id="nota_number" class="w-full rounded-lg border border-slate-200 px-3 py-2 text-sm" />
+        </div>
+        <div>
+          <label class="block text-xs font-medium text-slate-600 mb-1">Status</label>
+          <select id="status_delivery" class="w-full rounded-lg border border-slate-200 px-3 py-2 text-sm">
+            <option value="berhasil">Berhasil</option>
+            <option value="gagal">Gagal</option>
+          </select>
+        </div>
+        <p id="status" class="text-xs text-slate-600"></p>
+        <button type="submit" id="submit-btn" class="btn-primary">Simpan</button>
+      </form>
+    </div>
+  </main>
+
+  <nav class="fixed bottom-0 inset-x-0 bg-white border-t border-slate-200">
+    <div class="max-w-md mx-auto flex justify-around py-2 text-[11px]">
+      <button onclick="window.location.href='/kurir/absen.html'" class="flex flex-col items-center text-slate-500">Absen</button>
+      <button onclick="window.location.href='/kurir/delivery.html'" class="flex flex-col items-center text-primary">Antar/Jemput</button>
+      <button onclick="window.location.href='/kurir/produksi.html'" class="flex flex-col items-center text-slate-500">Produksi</button>
+      <button onclick="window.location.href='/kurir/pengeluaran.html'" class="flex flex-col items-center text-slate-500">Pengeluaran</button>
+      <button onclick="window.location.href='/kurir/riwayat.html'" class="flex flex-col items-center text-slate-500">Riwayat</button>
+      <button onclick="NearMeNav.logout()" class="flex flex-col items-center text-slate-500">Keluar</button>
+    </div>
+  </nav>
+
+  <script>
+    function getToken() { return localStorage.getItem('token'); }
+
+    const typeLabels = { antar: '🚚 Antar Pakaian', jemput: '📦 Jemput Pakaian' };
+    const typeColors = { antar: 'bg-green-500', jemput: 'bg-blue-500' };
+
+    function showForm(type) {
+      document.getElementById('menu-utama').classList.add('hidden');
+      document.getElementById('form-input').classList.remove('hidden');
+      document.getElementById('form-title').textContent = typeLabels[type];
+      document.getElementById('type').value = type;
+      document.getElementById('submit-btn').className = 'w-full rounded-lg text-center text-white font-semibold py-3 ' + typeColors[type];
+      document.getElementById('status').textContent = '';
+      document.getElementById('delivery-form').reset();
+      document.getElementById('type').value = type;
+    }
+
+    function backToMenu() {
+      document.getElementById('form-input').classList.add('hidden');
+      document.getElementById('menu-utama').classList.remove('hidden');
+    }
+
+    document.getElementById('delivery-form').addEventListener('submit', async (e) => {
+      e.preventDefault();
+      const statusEl = document.getElementById('status');
+      statusEl.textContent = 'Menyimpan...';
+
+      const payload = {
+        type: document.getElementById('type').value,
+        customer_name: document.getElementById('customer_name').value,
+        address: document.getElementById('address').value,
+        nota_number: document.getElementById('nota_number').value || null,
+        status: document.getElementById('status_delivery').value
+      };
+
+      try {
+        const res = await fetch('/api/delivery', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json', 'Authorization': 'Bearer ' + getToken() },
+          body: JSON.stringify(payload),
+        });
+        const data = await res.json().catch(() => ({}));
+        if (!res.ok) {
+          statusEl.textContent = data.message || 'Gagal menyimpan';
+          statusEl.className = 'text-xs text-red-500';
+        } else {
+          statusEl.textContent = data.message || 'Berhasil disimpan!';
+          statusEl.className = 'text-xs text-green-600';
+          document.getElementById('delivery-form').reset();
+          document.getElementById('type').value = payload.type;
+        }
+      } catch {
+        statusEl.textContent = 'Terjadi kesalahan jaringan';
+        statusEl.className = 'text-xs text-red-500';
+      }
+    });
+  </script>
+</body>
+</html>

@@ -18,6 +18,7 @@ import expensesRoute from './api/production/expenses';
 import riwayatRoute from './api/production/riwayat';
 import warehouseItemsRoute from './api/warehouse/items';
 import warehouseOutRoute from './api/warehouse/out';
+import deliveryRoute from './api/kurir/delivery';
 
 export interface Env {
   DB: D1Database;
@@ -55,5 +56,8 @@ app.route('/api/production/riwayat', riwayatRoute);
 // Warehouse routes
 app.route('/api/warehouse/items', warehouseItemsRoute);
 app.route('/api/warehouse/out', warehouseOutRoute);
+
+// Kurir routes
+app.route('/api/delivery', deliveryRoute);
 
 export default app;

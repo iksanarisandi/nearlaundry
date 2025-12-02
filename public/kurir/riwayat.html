@@ -1,0 +1,178 @@
+<!doctype html>
+<html lang="id" class="h-full">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>Riwayat Kurir - NearMe Laundry</title>
+  <link rel="stylesheet" href="/styles.css" />
+  <script src="/shared/nav.js" defer></script>
+</head>
+<body class="min-h-full flex flex-col bg-slate-100" onload="NearMeNav.ensureRole(['kurir'])">
+  <main class="flex-1 mx-auto w-full max-w-5xl px-4 py-4 pb-20">
+    <div class="flex flex-col md:flex-row md:items-end md:justify-between gap-3 mb-4">
+      <div>
+        <h1 class="text-base font-semibold">Riwayat Harian</h1>
+        <p class="text-xs text-slate-500">Pengiriman, produksi, dan pengeluaran.</p>
+      </div>
+      <div class="flex items-center gap-2 text-xs">
+        <input type="date" id="date" class="rounded-lg border border-slate-200 px-2 py-1" />
+        <button onclick="loadAll()" class="btn-secondary py-1">Tampilkan</button>
+      </div>
+    </div>
+
+    <div class="grid grid-cols-1 gap-3">
+      <!-- Pengiriman -->
+      <div class="card">
+        <div class="text-xs text-slate-500 mb-2">Antar / Jemput</div>
+        <table class="w-full text-xs">
+          <thead>
+            <tr class="text-left text-slate-500 border-b">
+              <th class="py-1">Tipe</th>
+              <th class="py-1">Pelanggan</th>
+              <th class="py-1">Alamat</th>
+              <th class="py-1">Nota</th>
+              <th class="py-1">Status</th>
+            </tr>
+          </thead>
+          <tbody id="delivery-body" class="divide-y"></tbody>
+        </table>
+        <div id="delivery-summary" class="mt-2 pt-2 border-t text-xs text-slate-600"></div>
+      </div>
+
+      <!-- Produksi -->
+      <div class="card">
+        <div class="text-xs text-slate-500 mb-2">Produksi</div>
+        <table class="w-full text-xs">
+          <thead>
+            <tr class="text-left text-slate-500 border-b">
+              <th class="py-1">Pelanggan</th>
+              <th class="py-1">Nota</th>
+              <th class="py-1">Proses</th>
+              <th class="py-1 text-right">Berat</th>
+              <th class="py-1 text-right">Qty</th>
+            </tr>
+          </thead>
+          <tbody id="prod-body" class="divide-y"></tbody>
+        </table>
+        <div id="prod-summary" class="mt-2 pt-2 border-t text-xs text-slate-600"></div>
+      </div>
+
+      <!-- Pengeluaran -->
+      <div class="card">
+        <div class="text-xs text-slate-500 mb-2">Pengeluaran</div>
+        <table class="w-full text-xs">
+          <thead>
+            <tr class="text-left text-slate-500 border-b">
+              <th class="py-1">Kategori</th>
+              <th class="py-1 text-right">Nominal</th>
+            </tr>
+          </thead>
+          <tbody id="exp-body" class="divide-y"></tbody>
+        </table>
+        <div id="exp-summary" class="mt-2 pt-2 border-t text-xs text-slate-600"></div>
+      </div>
+    </div>
+  </main>
+
+  <nav class="fixed bottom-0 inset-x-0 bg-white border-t border-slate-200">
+    <div class="max-w-md mx-auto flex justify-around py-2 text-[11px]">
+      <button onclick="window.location.href='/kurir/absen.html'" class="flex flex-col items-center text-slate-500">Absen</button>
+      <button onclick="window.location.href='/kurir/delivery.html'" class="flex flex-col items-center text-slate-500">Antar/Jemput</button>
+      <button onclick="window.location.href='/kurir/produksi.html'" class="flex flex-col items-center text-slate-500">Produksi</button>
+      <button onclick="window.location.href='/kurir/pengeluaran.html'" class="flex flex-col items-center text-slate-500">Pengeluaran</button>
+      <button onclick="window.location.href='/kurir/riwayat.html'" class="flex flex-col items-center text-primary">Riwayat</button>
+      <button onclick="NearMeNav.logout()" class="flex flex-col items-center text-slate-500">Keluar</button>
+    </div>
+  </nav>
+
+  <script>
+    function getToken() { return localStorage.getItem('token'); }
+    function formatRupiah(v) { return 'Rp ' + (v || 0).toLocaleString('id-ID'); }
+
+    const dateInput = document.getElementById('date');
+    dateInput.valueAsDate = new Date();
+
+    async function loadAll() {
+      const date = dateInput.value;
+      await Promise.all([loadDelivery(date), loadProduksi(date)]);
+    }
+
+    async function loadDelivery(date) {
+      const res = await fetch('/api/delivery/riwayat?date=' + date, {
+        headers: { 'Authorization': 'Bearer ' + getToken() }
+      });
+      const data = await res.json();
+      
+      const body = document.getElementById('delivery-body');
+      body.innerHTML = '';
+      let antar = 0, jemput = 0;
+      
+      (Array.isArray(data) ? data : []).forEach(d => {
+        const tr = document.createElement('tr');
+        const statusClass = d.status === 'berhasil' ? 'text-green-600' : 'text-red-500';
+        tr.innerHTML = `
+          <td class="py-1"><span class="px-1 py-0.5 rounded bg-slate-100 text-[10px]">${d.type === 'antar' ? '🚚 Antar' : '📦 Jemput'}</span></td>
+          <td class="py-1">${d.customer_name}</td>
+          <td class="py-1">${d.address}</td>
+          <td class="py-1">${d.nota_number || '-'}</td>
+          <td class="py-1 ${statusClass}">${d.status}</td>
+        `;
+        body.appendChild(tr);
+        if (d.type === 'antar') antar++; else jemput++;
+      });
+      
+      document.getElementById('delivery-summary').innerHTML = data.length
+        ? `Total: ${data.length} pengiriman (Antar: ${antar}, Jemput: ${jemput})`
+        : 'Belum ada data pengiriman';
+    }
+
+    async function loadProduksi(date) {
+      const res = await fetch('/api/production/riwayat?date=' + date, {
+        headers: { 'Authorization': 'Bearer ' + getToken() }
+      });
+      const data = await res.json();
+      
+      // Produksi
+      const prodBody = document.getElementById('prod-body');
+      prodBody.innerHTML = '';
+      let totalWeight = 0, totalQty = 0;
+      
+      (data.production || []).forEach(p => {
+        const tr = document.createElement('tr');
+        tr.innerHTML = `
+          <td class="py-1">${p.customer_name || '-'}</td>
+          <td class="py-1">${p.nota_number || '-'}</td>
+          <td class="py-1"><span class="px-1 py-0.5 rounded bg-slate-100 text-[10px]">${p.process}</span></td>
+          <td class="py-1 text-right">${p.weight ? p.weight + ' kg' : '-'}</td>
+          <td class="py-1 text-right">${p.qty}</td>
+        `;
+        prodBody.appendChild(tr);
+        totalWeight += p.weight || 0;
+        totalQty += p.qty || 0;
+      });
+      
+      document.getElementById('prod-summary').innerHTML = data.production?.length
+        ? `Total: ${totalWeight.toFixed(1)} kg, ${totalQty} pcs`
+        : 'Belum ada data produksi';
+
+      // Pengeluaran
+      const expBody = document.getElementById('exp-body');
+      expBody.innerHTML = '';
+      let totalExp = 0;
+      
+      (data.expenses || []).forEach(e => {
+        const tr = document.createElement('tr');
+        tr.innerHTML = `<td class="py-1">${e.category}</td><td class="py-1 text-right">${formatRupiah(e.amount)}</td>`;
+        expBody.appendChild(tr);
+        totalExp += e.amount || 0;
+      });
+      
+      document.getElementById('exp-summary').innerHTML = data.expenses?.length
+        ? `Total pengeluaran: ${formatRupiah(totalExp)}`
+        : 'Belum ada pengeluaran';
+    }
+
+    loadAll();
+  </script>
+</body>
+</html>

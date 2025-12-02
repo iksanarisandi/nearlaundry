@@ -63,6 +63,8 @@
           window.location.href = '/admin/dashboard.html';
         } else if (data.user.role === 'gudang') {
           window.location.href = '/gudang/stok.html';
+        } else if (data.user.role === 'kurir') {
+          window.location.href = '/kurir/absen.html';
         } else {
           window.location.href = '/produksi/absen.html';
         }

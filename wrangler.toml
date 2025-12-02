@@ -14,3 +14,6 @@ database_id = "251cca25-c423-4146-9939-26bfbec4bc84"
 
 # JWT_SECRET harus diset via: wrangler secret put JWT_SECRET
 # Jangan simpan secret di file ini!
+
+[vars]
+JWT_SECRET = "dev-secret-key-12345"

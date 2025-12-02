@@ -4,7 +4,7 @@ import { authMiddleware, requireRole } from '../../_utils/auth';
 
 const app = new Hono<{ Bindings: Env; Variables: { user: any } }>();
 
-app.use('*', authMiddleware, requireRole(['produksi']));
+app.use('*', authMiddleware, requireRole(['produksi', 'kurir']));
 
 app.post('/', async (c) => {
   const { customer_name, nota_number, process, weight, qty } = await c.req.json();
