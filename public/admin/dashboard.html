@@ -25,6 +25,7 @@
         <a href="/admin/stok.html">Stok</a>
         <a href="/admin/outlet.html">Outlet</a>
         <a href="/admin/users.html">User</a>
+        <a href="/admin/settings.html">Settings</a>
         <button onclick="NearMeNav.logout()" class="ml-2 text-red-500">Keluar</button>
       </nav>
     </div>
@@ -47,6 +48,29 @@
         </div>
         <button type="submit" class="btn-secondary mt-4 md:mt-0">Terapkan</button>
       </form>
+    </div>
+
+    <!-- Ringkasan Biaya per Outlet -->
+    <div class="card mb-4">
+      <div class="text-xs text-slate-500 mb-2">📊 Ringkasan Biaya per Outlet (% dari Omzet)</div>
+      <div class="overflow-x-auto">
+        <table class="w-full text-xs">
+          <thead>
+            <tr class="text-left text-slate-500 border-b">
+              <th class="py-2">Outlet</th>
+              <th class="py-2 text-right">Omzet</th>
+              <th class="py-2 text-right">Gas</th>
+              <th class="py-2 text-right">%</th>
+              <th class="py-2 text-right">BHP</th>
+              <th class="py-2 text-right">%</th>
+              <th class="py-2 text-right">Gaji</th>
+              <th class="py-2 text-right">%</th>
+            </tr>
+          </thead>
+          <tbody id="outlet-summary-body" class="divide-y"></tbody>
+          <tfoot id="outlet-summary-total" class="border-t-2 font-semibold"></tfoot>
+        </table>
+      </div>
     </div>
 
     <!-- Omzet Section -->
@@ -156,6 +180,35 @@
           statusEl.textContent = data.message || 'Gagal memuat data';
           return;
         }
+
+        // Ringkasan Biaya per Outlet
+        const outletSummaryBody = document.getElementById('outlet-summary-body');
+        const outletSummaryTotal = document.getElementById('outlet-summary-total');
+        outletSummaryBody.innerHTML = '';
+        (data.outletSummary || []).forEach(row => {
+          outletSummaryBody.innerHTML += `<tr>
+            <td class="py-2">${row.outlet}</td>
+            <td class="py-2 text-right">${formatRupiah(row.omzet)}</td>
+            <td class="py-2 text-right">${formatRupiah(row.gas_total)}</td>
+            <td class="py-2 text-right text-orange-600">${row.gas_percent}%</td>
+            <td class="py-2 text-right">${formatRupiah(row.bhp_total)}</td>
+            <td class="py-2 text-right text-blue-600">${row.bhp_percent}%</td>
+            <td class="py-2 text-right">${formatRupiah(row.gaji_total)}</td>
+            <td class="py-2 text-right text-purple-600">${row.gaji_percent}%</td>
+          </tr>`;
+        });
+        // Total row
+        const ts = data.totalSummary || {};
+        outletSummaryTotal.innerHTML = `<tr>
+          <td class="py-2">TOTAL</td>
+          <td class="py-2 text-right">${formatRupiah(ts.omzet)}</td>
+          <td class="py-2 text-right">${formatRupiah(ts.gas_total)}</td>
+          <td class="py-2 text-right text-orange-600">${ts.gas_percent}%</td>
+          <td class="py-2 text-right">${formatRupiah(ts.bhp_total)}</td>
+          <td class="py-2 text-right text-blue-600">${ts.bhp_percent}%</td>
+          <td class="py-2 text-right">${formatRupiah(ts.gaji_total)}</td>
+          <td class="py-2 text-right text-purple-600">${ts.gaji_percent}%</td>
+        </tr>`;
 
         // Omzet
         document.getElementById('total-omzet').textContent = formatRupiah(data.totalRevenue || 0);
