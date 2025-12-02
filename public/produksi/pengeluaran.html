@@ -24,43 +24,15 @@
         </div>
 
         <div id="subcategory-wrapper" class="hidden">
-          <label class="block text-xs font-medium text-slate-600 mb-1">Sub Kategori BHP *</label>
+          <label class="block text-xs font-medium text-slate-600 mb-1">Item BHP *</label>
           <select id="subcategory" class="w-full rounded-lg border border-slate-200 px-3 py-2 text-sm">
-            <option value="">Pilih sub kategori</option>
-            <optgroup label="Uang Makan">
-              <option value="uang makan lembur">Uang Makan Lembur</option>
-              <option value="uang makan target omzet">Uang Makan Target Omzet</option>
-            </optgroup>
-            <optgroup label="Bahan Cuci">
-              <option value="rinso">Rinso</option>
-              <option value="emulsi">Emulsi</option>
-              <option value="cuka">Cuka</option>
-              <option value="baking soda">Baking Soda</option>
-              <option value="sabun kodok">Sabun Kodok</option>
-              <option value="penghilang noda">Penghilang Noda</option>
-            </optgroup>
-            <optgroup label="Pewangi">
-              <option value="parfum allison">Parfum Allison</option>
-              <option value="parfum pink blossom">Parfum Pink Blossom</option>
-              <option value="parfum molto">Parfum Molto</option>
-              <option value="semprot parfum">Semprot Parfum</option>
-            </optgroup>
-            <optgroup label="Plastik">
-              <option value="plastik 7">Plastik 7</option>
-              <option value="plastik 12">Plastik 12</option>
-              <option value="plastik 15">Plastik 15</option>
-              <option value="plastik 20">Plastik 20</option>
-              <option value="plastik satuan">Plastik Satuan</option>
-              <option value="plastik sepatu">Plastik Sepatu</option>
-            </optgroup>
-            <optgroup label="Perlengkapan">
-              <option value="lakban">Lakban</option>
-              <option value="hanger">Hanger</option>
-              <option value="kertas print">Kertas Print</option>
-              <option value="roll bulu">Roll Bulu</option>
-              <option value="wipoll">Wipoll</option>
-            </optgroup>
+            <option value="">Pilih item BHP</option>
           </select>
+        </div>
+        
+        <div id="qty-wrapper" class="hidden">
+          <label class="block text-xs font-medium text-slate-600 mb-1">Jumlah *</label>
+          <input type="number" id="bhp_qty" min="1" value="1" class="w-full rounded-lg border border-slate-200 px-3 py-2 text-sm" />
         </div>
 
         <div id="keterangan-wrapper" class="hidden">
@@ -107,25 +79,82 @@
     const keteranganWrapper = document.getElementById('keterangan-wrapper');
     const keteranganInput = document.getElementById('keterangan');
 
+    const qtyWrapper = document.getElementById('qty-wrapper');
+    const bhpQtyInput = document.getElementById('bhp_qty');
+    const amountInput = document.getElementById('amount');
+    let bhpItems = [];
+
+    // Load BHP items from API
+    async function loadBhpItems() {
+      try {
+        const res = await fetch('/api/bhp-items');
+        bhpItems = await res.json();
+        
+        // Group by category
+        const grouped = {};
+        bhpItems.forEach(item => {
+          if (!grouped[item.category]) grouped[item.category] = [];
+          grouped[item.category].push(item);
+        });
+        
+        // Build select options
+        subcategorySelect.innerHTML = '<option value="">Pilih item BHP</option>';
+        Object.keys(grouped).sort().forEach(cat => {
+          const optgroup = document.createElement('optgroup');
+          optgroup.label = cat;
+          grouped[cat].forEach(item => {
+            const opt = document.createElement('option');
+            opt.value = item.name;
+            opt.dataset.price = item.price;
+            opt.textContent = `${item.name} (Rp ${item.price.toLocaleString('id-ID')}/${item.unit})`;
+            optgroup.appendChild(opt);
+          });
+          subcategorySelect.appendChild(optgroup);
+        });
+      } catch (e) {
+        console.error('Failed to load BHP items', e);
+      }
+    }
+
+    // Auto-calculate amount when BHP item or qty changes
+    subcategorySelect.addEventListener('change', () => {
+      const selected = subcategorySelect.options[subcategorySelect.selectedIndex];
+      const price = parseInt(selected.dataset.price) || 0;
+      const qty = parseInt(bhpQtyInput.value) || 1;
+      amountInput.value = price * qty;
+    });
+
+    bhpQtyInput.addEventListener('input', () => {
+      const selected = subcategorySelect.options[subcategorySelect.selectedIndex];
+      const price = parseInt(selected.dataset.price) || 0;
+      const qty = parseInt(bhpQtyInput.value) || 1;
+      amountInput.value = price * qty;
+    });
+
     categorySelect.addEventListener('change', () => {
       const val = categorySelect.value;
       if (val === 'BHP') {
         subcategoryWrapper.classList.remove('hidden');
         subcategorySelect.required = true;
+        qtyWrapper.classList.remove('hidden');
         keteranganWrapper.classList.add('hidden');
         keteranganInput.required = false;
       } else if (val === 'DLL') {
         subcategoryWrapper.classList.add('hidden');
         subcategorySelect.required = false;
+        qtyWrapper.classList.add('hidden');
         keteranganWrapper.classList.remove('hidden');
         keteranganInput.required = true;
       } else {
         subcategoryWrapper.classList.add('hidden');
         subcategorySelect.required = false;
+        qtyWrapper.classList.add('hidden');
         keteranganWrapper.classList.add('hidden');
         keteranganInput.required = false;
       }
     });
+
+    loadBhpItems();
 
     const form = document.getElementById('expense-form');
     const statusEl = document.getElementById('status');

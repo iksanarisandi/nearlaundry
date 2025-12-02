@@ -6,11 +6,19 @@ import {
   calculateTunjanganJabatan,
   calculateUangMakanRate,
   calculateDenda,
+  calculateUangTransport,
+  calculateLemburJam,
+  calculateLemburAmount,
   getTunjanganJabatanFormula,
   getUangMakanFormula,
   getDendaFormula,
+  getUangTransportFormula,
+  getLemburFormula,
   DENDA_PER_LATE,
-  LATE_TOLERANCE_MINUTES
+  LATE_TOLERANCE_MINUTES,
+  UANG_TRANSPORT_PER_DAY,
+  LEMBUR_RATE_PER_HOUR,
+  JAM_KERJA_NORMAL
 } from '../../_utils/allowance';
 
 const app = new Hono<{ Bindings: Env; Variables: { user: any } }>();
@@ -177,10 +185,40 @@ app.get('/allowances/:user_id', async (c) => {
   
   const late_count = lateResult?.late_count || 0;
   
+  // Calculate total work hours and overtime from attendance pairs (in/out)
+  const workHoursResult = await db.prepare(`
+    SELECT 
+      DATE(a_in.timestamp) as work_date,
+      a_in.timestamp as clock_in,
+      a_out.timestamp as clock_out,
+      (julianday(a_out.timestamp) - julianday(a_in.timestamp)) * 24 as work_hours
+    FROM attendance a_in
+    LEFT JOIN attendance a_out ON a_in.user_id = a_out.user_id 
+      AND DATE(a_in.timestamp) = DATE(a_out.timestamp)
+      AND a_out.type = 'out'
+    WHERE a_in.user_id = ?
+      AND a_in.type = 'in'
+      AND strftime('%Y-%m', a_in.timestamp) = ?
+  `).bind(user_id, ym).all();
+  
+  // Calculate total overtime hours (only count if >= 3 hours per day)
+  let total_lembur_jam = 0;
+  (workHoursResult.results ?? []).forEach((row: any) => {
+    if (row.work_hours && row.work_hours > JAM_KERJA_NORMAL) {
+      const dailyOvertime = row.work_hours - JAM_KERJA_NORMAL;
+      // Only count if overtime >= 3 hours
+      if (dailyOvertime >= 3) {
+        total_lembur_jam += Math.floor(dailyOvertime);
+      }
+    }
+  });
+  
   // Calculate allowances
   const tunjangan_jabatan = calculateTunjanganJabatan(masa_kerja_bulan);
   const uang_makan_rate = calculateUangMakanRate(masa_kerja_bulan);
   const uang_makan_total = uang_makan_rate * attendance_count;
+  const uang_transport_total = calculateUangTransport(attendance_count);
+  const lembur_total = calculateLemburAmount(total_lembur_jam);
   const denda_total = calculateDenda(late_count);
   
   return c.json({
@@ -194,6 +232,13 @@ app.get('/allowances/:user_id', async (c) => {
     uang_makan_rate,
     uang_makan_total,
     uang_makan_formula: getUangMakanFormula(attendance_count, uang_makan_rate, masa_kerja_bulan),
+    uang_transport_rate: UANG_TRANSPORT_PER_DAY,
+    uang_transport_total,
+    uang_transport_formula: getUangTransportFormula(attendance_count),
+    lembur_jam: total_lembur_jam,
+    lembur_rate: LEMBUR_RATE_PER_HOUR,
+    lembur_total,
+    lembur_formula: getLemburFormula(total_lembur_jam),
     late_count,
     denda_per_late: DENDA_PER_LATE,
     denda_total,

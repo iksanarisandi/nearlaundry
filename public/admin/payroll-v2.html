@@ -95,11 +95,19 @@
         </div>
         <div>
           <label class="block text-xs text-slate-600 mb-1">Uang Transport</label>
-          <input type="number" id="uang_transport" class="w-full rounded border px-2 py-1 text-sm" />
+          <div class="flex gap-1">
+            <input type="number" id="uang_transport" class="flex-1 rounded border px-2 py-1 text-sm" />
+            <button type="button" onclick="calcAllowances()" class="text-[10px] bg-accent text-white px-2 rounded">Auto</button>
+          </div>
+          <p id="transport-info" class="text-[10px] text-slate-500 mt-1"></p>
         </div>
         <div>
           <label class="block text-xs text-slate-600 mb-1">Lembur Jam (jumlah jam)</label>
-          <input type="number" id="lembur_jam" class="w-full rounded border px-2 py-1 text-sm" />
+          <div class="flex gap-1">
+            <input type="number" id="lembur_jam" class="flex-1 rounded border px-2 py-1 text-sm" />
+            <button type="button" onclick="calcAllowances()" class="text-[10px] bg-accent text-white px-2 rounded">Auto</button>
+          </div>
+          <p id="lembur-info" class="text-[10px] text-slate-500 mt-1"></p>
         </div>
         <div>
           <label class="block text-xs text-slate-600 mb-1">Rate/Jam (Rp)</label>
@@ -342,6 +350,8 @@
       // Clear info texts
       document.getElementById('tunjangan-info').textContent = '';
       document.getElementById('uangmakan-info').textContent = '';
+      document.getElementById('transport-info').textContent = '';
+      document.getElementById('lembur-info').textContent = '';
       document.getElementById('denda-info').textContent = '';
     }
 
@@ -373,6 +383,8 @@
         // Populate fields
         document.getElementById('tunjangan_jabatan').value = data.tunjangan_jabatan || 0;
         document.getElementById('uang_makan').value = data.uang_makan_total || 0;
+        document.getElementById('uang_transport').value = data.uang_transport_total || 0;
+        document.getElementById('lembur_jam').value = data.lembur_jam || 0;
         document.getElementById('denda_terlambat').value = data.denda_total || 0;
         
         // Show formula info
@@ -380,10 +392,14 @@
           `Masa kerja: ${data.masa_kerja_bulan} bulan. ${data.tunjangan_jabatan_formula || ''}`;
         document.getElementById('uangmakan-info').textContent = 
           `${data.attendance_count} hari x ${formatRupiah(data.uang_makan_rate)} = ${formatRupiah(data.uang_makan_total)}`;
+        document.getElementById('transport-info').textContent = 
+          `${data.attendance_count} hari x ${formatRupiah(data.uang_transport_rate)} = ${formatRupiah(data.uang_transport_total)}`;
+        document.getElementById('lembur-info').textContent = 
+          data.lembur_jam > 0 ? `${data.lembur_jam} jam x ${formatRupiah(data.lembur_rate)} = ${formatRupiah(data.lembur_total)}` : 'Tidak ada lembur (< 3 jam/hari)';
         document.getElementById('denda-info').textContent = 
           data.late_count > 0 ? `${data.late_count} hari terlambat x ${formatRupiah(data.denda_per_late)} = ${formatRupiah(data.denda_total)}` : 'Tidak ada keterlambatan';
         
-        statusEl.textContent = `Tunjangan dihitung otomatis (masa kerja: ${data.masa_kerja_bulan} bulan, kehadiran: ${data.attendance_count} hari, terlambat: ${data.late_count} hari)`;
+        statusEl.textContent = `Dihitung otomatis: kehadiran ${data.attendance_count} hari, lembur ${data.lembur_jam} jam, terlambat ${data.late_count} hari`;
         statusEl.className = 'text-xs text-green-600 mb-2';
       } catch (err) {
         statusEl.textContent = 'Error: ' + err.message;

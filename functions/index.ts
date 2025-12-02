@@ -12,6 +12,7 @@ import outletsRoute from './api/admin/outlets';
 import commissionRoute from './api/admin/commission';
 import adminWarehouseRoute from './api/admin/warehouse';
 import payrollNewRoute from './api/admin/payroll-new';
+import settingsRoute from './api/admin/settings';
 import productionRoute from './api/production/index';
 import attendanceRoute from './api/production/attendance';
 import expensesRoute from './api/production/expenses';
@@ -33,6 +34,13 @@ app.use('/api/*', cors());
 // Health check
 app.get('/api/health', (c) => c.json({ status: 'ok' }));
 
+// Public API for BHP items (used by production staff)
+app.get('/api/bhp-items', async (c) => {
+  const db = c.env.DB;
+  const result = await db.prepare('SELECT id, name, category, price, unit FROM bhp_items ORDER BY category, name').all();
+  return c.json(result.results ?? []);
+});
+
 // Auth
 app.route('/api/login', loginRoute);
 
@@ -46,6 +54,7 @@ app.route('/api/admin/users', usersRoute);
 app.route('/api/admin/outlets', outletsRoute);
 app.route('/api/admin/commission', commissionRoute);
 app.route('/api/admin/warehouse', adminWarehouseRoute);
+app.route('/api/admin/settings', settingsRoute);
 
 // Production routes
 app.route('/api/production', productionRoute);

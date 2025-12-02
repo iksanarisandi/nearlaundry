@@ -1,0 +1,215 @@
+<!doctype html>
+<html lang="id" class="h-full">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>Pengaturan - NearMe Laundry</title>
+  <link rel="stylesheet" href="/styles.css" />
+  <script src="/shared/nav.js" defer></script>
+</head>
+<body class="min-h-full flex flex-col bg-slate-100" onload="NearMeNav.ensureRole(['admin'])">
+  <header class="bg-white shadow-sm">
+    <div class="mx-auto max-w-5xl px-4 py-3 flex items-center justify-between">
+      <div class="flex items-center gap-3">
+        <img src="/icon.JPG" alt="Logo" class="h-8 w-8 rounded-full object-cover" />
+        <div>
+          <div class="font-semibold text-primary text-sm">NearMe Laundry - Admin</div>
+          <div class="text-[11px] text-slate-500">Pengaturan Sistem</div>
+        </div>
+      </div>
+      <nav class="flex items-center gap-3 text-[11px] text-slate-600">
+        <a href="/admin/dashboard.html">Dashboard</a>
+        <a href="/admin/payroll-v2.html">Payroll</a>
+        <a href="/admin/users.html">User</a>
+        <a href="/admin/settings.html" class="text-primary font-semibold">Settings</a>
+        <button onclick="NearMeNav.logout()" class="ml-2 text-red-500">Keluar</button>
+      </nav>
+    </div>
+  </header>
+
+  <main class="flex-1 mx-auto w-full max-w-5xl px-4 py-4">
+    <!-- Settings Umum -->
+    <div class="card mb-4">
+      <h2 class="text-sm font-semibold mb-3">Pengaturan Umum</h2>
+      <div class="space-y-3" id="settings-list"></div>
+      <p id="settings-status" class="text-xs text-slate-600 mt-2"></p>
+    </div>
+
+    <!-- Harga BHP -->
+    <div class="card">
+      <div class="flex items-center justify-between mb-3">
+        <h2 class="text-sm font-semibold">Harga Item BHP</h2>
+        <button onclick="showAddBhp()" class="text-xs text-accent underline">+ Tambah Item</button>
+      </div>
+      
+      <div id="add-bhp-form" class="hidden mb-4 p-3 bg-slate-50 rounded-lg">
+        <div class="grid grid-cols-4 gap-2 mb-2">
+          <input type="text" id="new-bhp-name" placeholder="Nama item" class="rounded border px-2 py-1 text-xs" />
+          <select id="new-bhp-category" class="rounded border px-2 py-1 text-xs">
+            <option value="Bahan Cuci">Bahan Cuci</option>
+            <option value="Pewangi">Pewangi</option>
+            <option value="Plastik">Plastik</option>
+            <option value="Perlengkapan">Perlengkapan</option>
+            <option value="Uang Makan">Uang Makan</option>
+          </select>
+          <input type="number" id="new-bhp-price" placeholder="Harga" class="rounded border px-2 py-1 text-xs" />
+          <input type="text" id="new-bhp-unit" placeholder="Satuan" value="pcs" class="rounded border px-2 py-1 text-xs" />
+        </div>
+        <div class="flex gap-2">
+          <button onclick="addBhp()" class="btn-primary text-xs py-1">Simpan</button>
+          <button onclick="hideAddBhp()" class="btn-secondary text-xs py-1">Batal</button>
+        </div>
+      </div>
+
+      <div class="overflow-x-auto">
+        <table class="w-full text-xs">
+          <thead>
+            <tr class="text-left text-slate-500 border-b">
+              <th class="py-2">Nama Item</th>
+              <th class="py-2">Kategori</th>
+              <th class="py-2">Satuan</th>
+              <th class="py-2 text-right">Harga</th>
+              <th class="py-2 text-right">Aksi</th>
+            </tr>
+          </thead>
+          <tbody id="bhp-body" class="divide-y"></tbody>
+        </table>
+      </div>
+      <p id="bhp-status" class="text-xs text-slate-600 mt-2"></p>
+    </div>
+  </main>
+
+  <script>
+    function getToken() { return localStorage.getItem('token'); }
+    function formatRupiah(v) { return 'Rp ' + (v || 0).toLocaleString('id-ID'); }
+
+    const settingLabels = {
+      'cuci_sepatu_rate': 'Upah Cuci Sepatu (per pasang)',
+      'cuci_satuan_commission_percent': 'Komisi Cuci Satuan (%)'
+    };
+
+    async function loadSettings() {
+      const res = await fetch('/api/admin/settings', {
+        headers: { 'Authorization': 'Bearer ' + getToken() }
+      });
+      const data = await res.json();
+      
+      const container = document.getElementById('settings-list');
+      container.innerHTML = '';
+      
+      data.forEach(s => {
+        const div = document.createElement('div');
+        div.className = 'flex items-center gap-3';
+        div.innerHTML = `
+          <label class="text-xs text-slate-600 w-48">${settingLabels[s.key] || s.key}</label>
+          <input type="number" value="${s.value}" data-key="${s.key}" 
+                 class="flex-1 rounded border px-2 py-1 text-sm setting-input" />
+          <button onclick="saveSetting('${s.key}')" class="text-xs text-accent underline">Simpan</button>
+        `;
+        container.appendChild(div);
+      });
+    }
+
+    async function saveSetting(key) {
+      const input = document.querySelector(`input[data-key="${key}"]`);
+      const statusEl = document.getElementById('settings-status');
+      
+      const res = await fetch(`/api/admin/settings/${key}`, {
+        method: 'PUT',
+        headers: { 'Content-Type': 'application/json', 'Authorization': 'Bearer ' + getToken() },
+        body: JSON.stringify({ value: input.value })
+      });
+      const data = await res.json();
+      statusEl.textContent = data.message;
+      statusEl.className = res.ok ? 'text-xs text-green-600 mt-2' : 'text-xs text-red-500 mt-2';
+    }
+
+    async function loadBhp() {
+      const res = await fetch('/api/admin/settings/bhp', {
+        headers: { 'Authorization': 'Bearer ' + getToken() }
+      });
+      const data = await res.json();
+      
+      const body = document.getElementById('bhp-body');
+      body.innerHTML = '';
+      
+      data.forEach(item => {
+        const tr = document.createElement('tr');
+        tr.innerHTML = `
+          <td class="py-2">${item.name}</td>
+          <td class="py-2"><span class="px-1 py-0.5 rounded bg-slate-100 text-[10px]">${item.category}</span></td>
+          <td class="py-2">${item.unit}</td>
+          <td class="py-2 text-right">
+            <input type="number" value="${item.price}" data-bhp-id="${item.id}" 
+                   class="w-24 rounded border px-2 py-1 text-xs text-right bhp-price" />
+          </td>
+          <td class="py-2 text-right space-x-1">
+            <button onclick="saveBhpPrice(${item.id})" class="text-accent underline">Simpan</button>
+            <button onclick="deleteBhp(${item.id})" class="text-red-500 underline">Hapus</button>
+          </td>
+        `;
+        body.appendChild(tr);
+      });
+    }
+
+    async function saveBhpPrice(id) {
+      const input = document.querySelector(`input[data-bhp-id="${id}"]`);
+      const statusEl = document.getElementById('bhp-status');
+      
+      const res = await fetch(`/api/admin/settings/bhp/${id}`, {
+        method: 'PUT',
+        headers: { 'Content-Type': 'application/json', 'Authorization': 'Bearer ' + getToken() },
+        body: JSON.stringify({ price: Number(input.value) })
+      });
+      const data = await res.json();
+      statusEl.textContent = data.message;
+      statusEl.className = res.ok ? 'text-xs text-green-600 mt-2' : 'text-xs text-red-500 mt-2';
+    }
+
+    function showAddBhp() {
+      document.getElementById('add-bhp-form').classList.remove('hidden');
+    }
+
+    function hideAddBhp() {
+      document.getElementById('add-bhp-form').classList.add('hidden');
+    }
+
+    async function addBhp() {
+      const statusEl = document.getElementById('bhp-status');
+      const payload = {
+        name: document.getElementById('new-bhp-name').value,
+        category: document.getElementById('new-bhp-category').value,
+        price: Number(document.getElementById('new-bhp-price').value) || 0,
+        unit: document.getElementById('new-bhp-unit').value || 'pcs'
+      };
+
+      const res = await fetch('/api/admin/settings/bhp', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json', 'Authorization': 'Bearer ' + getToken() },
+        body: JSON.stringify(payload)
+      });
+      const data = await res.json();
+      statusEl.textContent = data.message;
+      statusEl.className = res.ok ? 'text-xs text-green-600 mt-2' : 'text-xs text-red-500 mt-2';
+      
+      if (res.ok) {
+        hideAddBhp();
+        loadBhp();
+      }
+    }
+
+    async function deleteBhp(id) {
+      if (!confirm('Hapus item BHP ini?')) return;
+      
+      const res = await fetch(`/api/admin/settings/bhp/${id}`, {
+        method: 'DELETE',
+        headers: { 'Authorization': 'Bearer ' + getToken() }
+      });
+      loadBhp();
+    }
+
+    loadSettings();
+    loadBhp();
+  </script>
+</body>
+</html>
