@@ -28,10 +28,28 @@ app.get('/', async (c) => {
     "SELECT category, SUM(amount) as total FROM expenses WHERE substr(timestamp, 1, 7) = ? GROUP BY category"
   ).bind(ym).all();
 
+  // Production summary per process
+  const productionByProcess = await db.prepare(
+    "SELECT process, SUM(weight) as total_kg, SUM(qty) as total_qty, COUNT(*) as total_transaksi FROM production WHERE substr(timestamp, 1, 7) = ? GROUP BY process"
+  ).bind(ym).all();
+
+  // Production per staff
+  const productionByStaff = await db.prepare(
+    "SELECT u.name as staff, SUM(p.weight) as total_kg, SUM(p.qty) as total_qty, COUNT(*) as total_transaksi FROM production p JOIN users u ON p.user_id = u.id WHERE substr(p.timestamp, 1, 7) = ? GROUP BY p.user_id ORDER BY total_kg DESC"
+  ).bind(ym).all();
+
+  // Delivery summary (antar/jemput)
+  const deliverySummary = await db.prepare(
+    "SELECT type, COUNT(*) as total, SUM(CASE WHEN status = 'berhasil' THEN 1 ELSE 0 END) as berhasil, SUM(CASE WHEN status = 'gagal' THEN 1 ELSE 0 END) as gagal FROM deliveries WHERE substr(timestamp, 1, 7) = ? GROUP BY type"
+  ).bind(ym).all();
+
   return c.json({
     totalRevenue: (totalRevenue as any)?.total ?? 0,
     revenuePerOutlet: revenuePerOutlet.results ?? [],
-    expensesByCategory: expensesSummary.results ?? []
+    expensesByCategory: expensesSummary.results ?? [],
+    productionByProcess: productionByProcess.results ?? [],
+    productionByStaff: productionByStaff.results ?? [],
+    deliverySummary: deliverySummary.results ?? []
   });
 });
 
