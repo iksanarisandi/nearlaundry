@@ -36,9 +36,14 @@
 
     <!-- Search Form -->
     <div class="card mb-4">
-      <form id="search-form" class="flex gap-2">
-        <input type="text" id="nota" placeholder="Masukkan nomor nota..." 
-               class="flex-1 rounded-lg border border-slate-200 px-3 py-2 text-sm" required />
+      <form id="search-form" class="space-y-2">
+        <div class="grid grid-cols-1 md:grid-cols-2 gap-2">
+          <input type="text" id="nota" placeholder="Nomor nota..." 
+                 class="rounded-lg border border-slate-200 px-3 py-2 text-sm" />
+          <input type="text" id="customer_name" placeholder="Nama pelanggan..." 
+                 class="rounded-lg border border-slate-200 px-3 py-2 text-sm" />
+        </div>
+        <p class="text-[10px] text-slate-500">Isi salah satu atau keduanya untuk pencarian lebih akurat</p>
         <button type="submit" class="btn-primary">Cari</button>
       </form>
     </div>
@@ -87,23 +92,32 @@
     document.getElementById('search-form').addEventListener('submit', async (e) => {
       e.preventDefault();
       const nota = document.getElementById('nota').value.trim();
+      const customerName = document.getElementById('customer_name').value.trim();
       const statusEl = document.getElementById('status');
       const resultsDiv = document.getElementById('results');
       const resultsBody = document.getElementById('results-body');
       const noResults = document.getElementById('no-results');
 
-      if (!nota) return;
+      if (!nota && !customerName) {
+        statusEl.textContent = 'Isi minimal satu field pencarian';
+        return;
+      }
 
       statusEl.textContent = 'Mencari...';
       resultsDiv.classList.add('hidden');
 
       try {
-        const res = await fetch(`/api/production/search?nota=${encodeURIComponent(nota)}`, {
+        const params = new URLSearchParams();
+        if (nota) params.append('nota', nota);
+        if (customerName) params.append('name', customerName);
+
+        const res = await fetch(`/api/admin/tracking/search?${params.toString()}`, {
           headers: { 'Authorization': 'Bearer ' + getToken() }
         });
         const data = await res.json();
 
-        document.getElementById('search-nota').textContent = nota;
+        const searchText = [nota, customerName].filter(Boolean).join(' / ');
+        document.getElementById('search-nota').textContent = searchText;
         resultsDiv.classList.remove('hidden');
         resultsBody.innerHTML = '';
 

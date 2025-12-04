@@ -37,12 +37,16 @@
     <!-- Form Input Kasbon -->
     <div class="card mb-4">
       <h2 class="text-sm font-semibold mb-3">Input Kasbon Baru</h2>
-      <form id="kasbon-form" class="grid grid-cols-1 md:grid-cols-4 gap-3">
+      <form id="kasbon-form" class="grid grid-cols-1 md:grid-cols-5 gap-3">
         <div>
           <label class="block text-xs text-slate-600 mb-1">Karyawan</label>
           <select id="user_id" class="w-full rounded border px-2 py-1 text-sm" required>
             <option value="">Pilih karyawan</option>
           </select>
+        </div>
+        <div>
+          <label class="block text-xs text-slate-600 mb-1">Tanggal</label>
+          <input type="date" id="kasbon_date" class="w-full rounded border px-2 py-1 text-sm" />
         </div>
         <div>
           <label class="block text-xs text-slate-600 mb-1">Nominal (Rp)</label>
@@ -56,6 +60,7 @@
           <button type="submit" class="btn-primary w-full">Simpan</button>
         </div>
       </form>
+      <p class="text-[10px] text-slate-500 mt-1">Kosongkan tanggal untuk menggunakan hari ini</p>
       <p id="form-status" class="text-xs text-slate-600 mt-2"></p>
     </div>
 
@@ -158,7 +163,8 @@
       const payload = {
         user_id: Number(document.getElementById('user_id').value),
         amount: Number(document.getElementById('amount').value),
-        note: document.getElementById('note').value
+        note: document.getElementById('note').value,
+        date: document.getElementById('kasbon_date').value || null
       };
       
       const res = await fetch('/api/admin/kasbon', {

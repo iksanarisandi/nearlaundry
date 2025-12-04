@@ -32,15 +32,22 @@ app.get('/', async (c) => {
 
 // Add kasbon
 app.post('/', async (c) => {
-  const { user_id, amount, note } = await c.req.json();
+  const { user_id, amount, note, date } = await c.req.json();
   
   if (!user_id || !amount || amount <= 0) {
     return c.json({ message: 'User dan nominal wajib diisi' }, 400);
   }
   
   const db = c.env.DB;
-  await db.prepare('INSERT INTO kasbon (user_id, amount, note) VALUES (?, ?, ?)')
-    .bind(user_id, amount, note || null).run();
+  
+  // If date provided, use it; otherwise use current timestamp
+  if (date) {
+    await db.prepare('INSERT INTO kasbon (user_id, amount, note, created_at) VALUES (?, ?, ?, ?)')
+      .bind(user_id, amount, note || null, date + 'T00:00:00.000Z').run();
+  } else {
+    await db.prepare('INSERT INTO kasbon (user_id, amount, note) VALUES (?, ?, ?)')
+      .bind(user_id, amount, note || null).run();
+  }
   
   return c.json({ message: 'Kasbon berhasil disimpan' });
 });

@@ -16,30 +16,35 @@ app.get('/', async (c) => {
 
 // Tambah user
 app.post('/', async (c) => {
-  const { name, email, role, outlet_id, password, join_date } = await c.req.json();
+  try {
+    const { name, email, role, outlet_id, password, join_date } = await c.req.json();
 
-  if (!name || !email || !role) {
-    return c.json({ message: 'Nama, email, dan role wajib diisi' }, 400);
+    if (!name || !email || !role) {
+      return c.json({ message: 'Nama, email, dan role wajib diisi' }, 400);
+    }
+    if (!['admin','gudang','produksi','kurir'].includes(role)) {
+      return c.json({ message: 'Role tidak valid' }, 400);
+    }
+
+    const db = c.env.DB;
+
+    const exists = await db.prepare('SELECT id FROM users WHERE email = ?').bind(email).first();
+    if (exists) {
+      return c.json({ message: 'Email sudah terpakai' }, 400);
+    }
+
+    const pwd = password && password.length >= 6 ? password : 'laundry123';
+    const hash = await bcrypt.hash(pwd, 10);
+
+    await db.prepare(
+      'INSERT INTO users (name, email, password_hash, role, outlet_id, join_date) VALUES (?, ?, ?, ?, ?, ?)' 
+    ).bind(name, email, hash, role, outlet_id ?? null, join_date ?? null).run();
+
+    return c.json({ message: 'User berhasil dibuat', defaultPassword: pwd === 'laundry123' ? pwd : undefined });
+  } catch (err: any) {
+    console.error('Error creating user:', err);
+    return c.json({ message: 'Gagal membuat user: ' + (err?.message || 'Unknown error') }, 500);
   }
-  if (!['admin','gudang','produksi','kurir'].includes(role)) {
-    return c.json({ message: 'Role tidak valid' }, 400);
-  }
-
-  const db = c.env.DB;
-
-  const exists = await db.prepare('SELECT id FROM users WHERE email = ?').bind(email).first();
-  if (exists) {
-    return c.json({ message: 'Email sudah terpakai' }, 400);
-  }
-
-  const pwd = password && password.length >= 6 ? password : 'laundry123';
-  const hash = await bcrypt.hash(pwd, 10);
-
-  await db.prepare(
-    'INSERT INTO users (name, email, password_hash, role, outlet_id, join_date) VALUES (?, ?, ?, ?, ?, ?)' 
-  ).bind(name, email, hash, role, outlet_id ?? null, join_date ?? null).run();
-
-  return c.json({ message: 'User berhasil dibuat', defaultPassword: pwd === 'laundry123' ? pwd : undefined });
 });
 
 // Update user (tanpa ubah password)
