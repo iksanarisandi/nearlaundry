@@ -19,6 +19,7 @@
       </div>
       <nav class="flex items-center gap-3 text-[11px] text-slate-600">
         <a href="/admin/dashboard.html" class="text-primary font-semibold">Dashboard</a>
+        <a href="/admin/tracking.html">Tracking</a>
         <a href="/admin/omzet.html">Omzet</a>
         <a href="/admin/payroll-v2.html">Payroll</a>
         <a href="/admin/komisi.html">Komisi</a>
@@ -63,7 +64,11 @@
               <th class="py-2 text-right">%</th>
               <th class="py-2 text-right">BHP</th>
               <th class="py-2 text-right">%</th>
+              <th class="py-2 text-right">DLL</th>
+              <th class="py-2 text-right">%</th>
               <th class="py-2 text-right">Gaji</th>
+              <th class="py-2 text-right">%</th>
+              <th class="py-2 text-right">Net Profit</th>
               <th class="py-2 text-right">%</th>
             </tr>
           </thead>
@@ -186,6 +191,7 @@
         const outletSummaryTotal = document.getElementById('outlet-summary-total');
         outletSummaryBody.innerHTML = '';
         (data.outletSummary || []).forEach(row => {
+          const profitClass = row.net_profit >= 0 ? 'text-green-600' : 'text-red-600';
           outletSummaryBody.innerHTML += `<tr>
             <td class="py-2">${row.outlet}</td>
             <td class="py-2 text-right">${formatRupiah(row.omzet)}</td>
@@ -193,12 +199,17 @@
             <td class="py-2 text-right text-orange-600">${row.gas_percent}%</td>
             <td class="py-2 text-right">${formatRupiah(row.bhp_total)}</td>
             <td class="py-2 text-right text-blue-600">${row.bhp_percent}%</td>
+            <td class="py-2 text-right">${formatRupiah(row.dll_total)}</td>
+            <td class="py-2 text-right text-slate-600">${row.dll_percent}%</td>
             <td class="py-2 text-right">${formatRupiah(row.gaji_total)}</td>
             <td class="py-2 text-right text-purple-600">${row.gaji_percent}%</td>
+            <td class="py-2 text-right font-semibold ${profitClass}">${formatRupiah(row.net_profit)}</td>
+            <td class="py-2 text-right font-semibold ${profitClass}">${row.net_profit_percent}%</td>
           </tr>`;
         });
         // Total row
         const ts = data.totalSummary || {};
+        const totalProfitClass = ts.net_profit >= 0 ? 'text-green-600' : 'text-red-600';
         outletSummaryTotal.innerHTML = `<tr>
           <td class="py-2">TOTAL</td>
           <td class="py-2 text-right">${formatRupiah(ts.omzet)}</td>
@@ -206,8 +217,12 @@
           <td class="py-2 text-right text-orange-600">${ts.gas_percent}%</td>
           <td class="py-2 text-right">${formatRupiah(ts.bhp_total)}</td>
           <td class="py-2 text-right text-blue-600">${ts.bhp_percent}%</td>
+          <td class="py-2 text-right">${formatRupiah(ts.dll_total)}</td>
+          <td class="py-2 text-right text-slate-600">${ts.dll_percent}%</td>
           <td class="py-2 text-right">${formatRupiah(ts.gaji_total)}</td>
           <td class="py-2 text-right text-purple-600">${ts.gaji_percent}%</td>
+          <td class="py-2 text-right font-semibold ${totalProfitClass}">${formatRupiah(ts.net_profit)}</td>
+          <td class="py-2 text-right font-semibold ${totalProfitClass}">${ts.net_profit_percent}%</td>
         </tr>`;
 
         // Omzet

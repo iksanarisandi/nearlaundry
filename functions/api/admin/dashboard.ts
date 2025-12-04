@@ -30,13 +30,14 @@ app.get('/', async (c) => {
     "SELECT category, SUM(amount) as total FROM expenses WHERE substr(timestamp, 1, 7) = ? GROUP BY category"
   ).bind(ym).all();
 
-  // Expenses per outlet (GAS and BHP)
+  // Expenses per outlet (GAS, BHP, DLL)
   const expensesPerOutlet = await db.prepare(`
     SELECT 
       o.id as outlet_id,
       o.name as outlet,
       COALESCE(SUM(CASE WHEN e.category = 'GAS' THEN e.amount ELSE 0 END), 0) as gas_total,
-      COALESCE(SUM(CASE WHEN e.category LIKE 'BHP%' THEN e.amount ELSE 0 END), 0) as bhp_total
+      COALESCE(SUM(CASE WHEN e.category LIKE 'BHP%' THEN e.amount ELSE 0 END), 0) as bhp_total,
+      COALESCE(SUM(CASE WHEN e.category LIKE 'DLL%' THEN e.amount ELSE 0 END), 0) as dll_total
     FROM outlets o
     LEFT JOIN expenses e ON e.outlet_id = o.id AND substr(e.timestamp, 1, 7) = ?
     GROUP BY o.id
@@ -61,12 +62,14 @@ app.get('/', async (c) => {
 
   // Combine outlet data with percentages
   const outletSummary = (revenuePerOutlet.results ?? []).map((rev: any) => {
-    const expenses = (expensesPerOutlet.results ?? []).find((e: any) => e.outlet_id === rev.outlet_id) || { gas_total: 0, bhp_total: 0 };
+    const expenses = (expensesPerOutlet.results ?? []).find((e: any) => e.outlet_id === rev.outlet_id) || { gas_total: 0, bhp_total: 0, dll_total: 0 };
     const payroll = (payrollPerOutlet.results ?? []).find((p: any) => p.outlet_id === rev.outlet_id) || { gaji_total: 0 };
     const omzet = Number(rev.total) || 0;
     const gasTotal = Number(expenses.gas_total) || 0;
     const bhpTotal = Number(expenses.bhp_total) || 0;
+    const dllTotal = Number(expenses.dll_total) || 0;
     const gajiTotal = Number(payroll.gaji_total) || 0;
+    const netProfit = omzet - gasTotal - bhpTotal - dllTotal - gajiTotal;
     
     return {
       outlet_id: rev.outlet_id,
@@ -76,8 +79,12 @@ app.get('/', async (c) => {
       gas_percent: omzet > 0 ? (gasTotal / omzet * 100).toFixed(1) : '0.0',
       bhp_total: bhpTotal,
       bhp_percent: omzet > 0 ? (bhpTotal / omzet * 100).toFixed(1) : '0.0',
+      dll_total: dllTotal,
+      dll_percent: omzet > 0 ? (dllTotal / omzet * 100).toFixed(1) : '0.0',
       gaji_total: gajiTotal,
-      gaji_percent: omzet > 0 ? (gajiTotal / omzet * 100).toFixed(1) : '0.0'
+      gaji_percent: omzet > 0 ? (gajiTotal / omzet * 100).toFixed(1) : '0.0',
+      net_profit: netProfit,
+      net_profit_percent: omzet > 0 ? (netProfit / omzet * 100).toFixed(1) : '0.0'
     };
   });
 
@@ -85,7 +92,9 @@ app.get('/', async (c) => {
   const totalOmzet = (totalRevenue as any)?.total ?? 0;
   const totalGas = outletSummary.reduce((sum: number, o: any) => sum + (o.gas_total || 0), 0);
   const totalBhp = outletSummary.reduce((sum: number, o: any) => sum + (o.bhp_total || 0), 0);
+  const totalDll = outletSummary.reduce((sum: number, o: any) => sum + (o.dll_total || 0), 0);
   const totalGaji = outletSummary.reduce((sum: number, o: any) => sum + (o.gaji_total || 0), 0);
+  const totalNetProfit = totalOmzet - totalGas - totalBhp - totalDll - totalGaji;
 
   // Production summary per process
   const productionByProcess = await db.prepare(
@@ -113,8 +122,12 @@ app.get('/', async (c) => {
       gas_percent: totalOmzet > 0 ? (totalGas / totalOmzet * 100).toFixed(1) : '0.0',
       bhp_total: totalBhp,
       bhp_percent: totalOmzet > 0 ? (totalBhp / totalOmzet * 100).toFixed(1) : '0.0',
+      dll_total: totalDll,
+      dll_percent: totalOmzet > 0 ? (totalDll / totalOmzet * 100).toFixed(1) : '0.0',
       gaji_total: totalGaji,
-      gaji_percent: totalOmzet > 0 ? (totalGaji / totalOmzet * 100).toFixed(1) : '0.0'
+      gaji_percent: totalOmzet > 0 ? (totalGaji / totalOmzet * 100).toFixed(1) : '0.0',
+      net_profit: totalNetProfit,
+      net_profit_percent: totalOmzet > 0 ? (totalNetProfit / totalOmzet * 100).toFixed(1) : '0.0'
     },
     productionByProcess: productionByProcess.results ?? [],
     productionByStaff: productionByStaff.results ?? [],

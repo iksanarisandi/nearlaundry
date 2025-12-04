@@ -1,0 +1,136 @@
+<!doctype html>
+<html lang="id" class="h-full">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>Tracking Produksi - NearMe Laundry</title>
+  <link rel="stylesheet" href="/styles.css" />
+  <script src="/shared/nav.js" defer></script>
+</head>
+<body class="min-h-full flex flex-col bg-slate-100" onload="NearMeNav.ensureRole(['admin'])">
+  <header class="bg-white shadow-sm">
+    <div class="mx-auto max-w-5xl px-4 py-3 flex items-center justify-between">
+      <div class="flex items-center gap-3">
+        <img src="/icon.JPG" alt="Logo" class="h-8 w-8 rounded-full object-cover" />
+        <div>
+          <div class="font-semibold text-primary text-sm">NearMe Laundry - Admin</div>
+          <div class="text-[11px] text-slate-500">Tracking Produksi</div>
+        </div>
+      </div>
+      <nav class="flex items-center gap-3 text-[11px] text-slate-600">
+        <a href="/admin/dashboard.html">Dashboard</a>
+        <a href="/admin/tracking.html" class="text-primary font-semibold">Tracking</a>
+        <a href="/admin/payroll-v2.html">Payroll</a>
+        <a href="/admin/users.html">User</a>
+        <a href="/admin/settings.html">Settings</a>
+        <button onclick="NearMeNav.logout()" class="ml-2 text-red-500">Keluar</button>
+      </nav>
+    </div>
+  </header>
+
+  <main class="flex-1 mx-auto w-full max-w-5xl px-4 py-4">
+    <div class="mb-4">
+      <h1 class="text-lg font-semibold">Tracking Produksi</h1>
+      <p class="text-xs text-slate-500">Cari riwayat produksi berdasarkan nomor nota untuk tracking komplain.</p>
+    </div>
+
+    <!-- Search Form -->
+    <div class="card mb-4">
+      <form id="search-form" class="flex gap-2">
+        <input type="text" id="nota" placeholder="Masukkan nomor nota..." 
+               class="flex-1 rounded-lg border border-slate-200 px-3 py-2 text-sm" required />
+        <button type="submit" class="btn-primary">Cari</button>
+      </form>
+    </div>
+
+    <!-- Results -->
+    <div id="results" class="hidden">
+      <div class="card">
+        <h2 class="text-sm font-semibold mb-3">Hasil Pencarian: <span id="search-nota" class="text-primary"></span></h2>
+        <div class="overflow-x-auto">
+          <table class="w-full text-xs">
+            <thead>
+              <tr class="text-left text-slate-500 border-b">
+                <th class="py-2">Proses</th>
+                <th class="py-2">Pelanggan</th>
+                <th class="py-2">Staff</th>
+                <th class="py-2">Outlet</th>
+                <th class="py-2 text-right">Berat</th>
+                <th class="py-2 text-right">Qty</th>
+                <th class="py-2">Waktu</th>
+              </tr>
+            </thead>
+            <tbody id="results-body" class="divide-y"></tbody>
+          </table>
+        </div>
+        <p id="no-results" class="text-xs text-slate-500 py-4 text-center hidden">Tidak ada data ditemukan</p>
+      </div>
+    </div>
+
+    <p id="status" class="text-xs text-slate-600 mt-3"></p>
+  </main>
+
+  <script>
+    function getToken() { return localStorage.getItem('token'); }
+
+    const processLabels = {
+      cuci: '🧺 Cuci', kering: '☀️ Keringkan', setrika: '👔 Setrika', packing: '📦 Packing',
+      cuci_sepatu: '👟 Cuci Sepatu', cuci_satuan: '👕 Cuci Satuan'
+    };
+
+    function formatDate(ts) {
+      if (!ts) return '-';
+      const d = new Date(ts);
+      return d.toLocaleDateString('id-ID') + ' ' + d.toLocaleTimeString('id-ID', { hour: '2-digit', minute: '2-digit' });
+    }
+
+    document.getElementById('search-form').addEventListener('submit', async (e) => {
+      e.preventDefault();
+      const nota = document.getElementById('nota').value.trim();
+      const statusEl = document.getElementById('status');
+      const resultsDiv = document.getElementById('results');
+      const resultsBody = document.getElementById('results-body');
+      const noResults = document.getElementById('no-results');
+
+      if (!nota) return;
+
+      statusEl.textContent = 'Mencari...';
+      resultsDiv.classList.add('hidden');
+
+      try {
+        const res = await fetch(`/api/production/search?nota=${encodeURIComponent(nota)}`, {
+          headers: { 'Authorization': 'Bearer ' + getToken() }
+        });
+        const data = await res.json();
+
+        document.getElementById('search-nota').textContent = nota;
+        resultsDiv.classList.remove('hidden');
+        resultsBody.innerHTML = '';
+
+        if (Array.isArray(data) && data.length > 0) {
+          noResults.classList.add('hidden');
+          data.forEach(row => {
+            const tr = document.createElement('tr');
+            tr.innerHTML = `
+              <td class="py-2">${processLabels[row.process] || row.process}</td>
+              <td class="py-2">${row.customer_name}</td>
+              <td class="py-2 font-semibold">${row.staff_name}</td>
+              <td class="py-2">${row.outlet_name || '-'}</td>
+              <td class="py-2 text-right">${row.weight ? row.weight.toFixed(1) + ' kg' : '-'}</td>
+              <td class="py-2 text-right">${row.qty}</td>
+              <td class="py-2">${formatDate(row.timestamp)}</td>
+            `;
+            resultsBody.appendChild(tr);
+          });
+          statusEl.textContent = `Ditemukan ${data.length} record`;
+        } else {
+          noResults.classList.remove('hidden');
+          statusEl.textContent = 'Tidak ada data ditemukan';
+        }
+      } catch (err) {
+        statusEl.textContent = 'Error: ' + err.message;
+      }
+    });
+  </script>
+</body>
+</html>

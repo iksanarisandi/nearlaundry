@@ -3,11 +3,18 @@ import {
   calculateMasaKerja,
   calculateTunjanganJabatan,
   calculateUangMakanRate,
+  calculateUangTransport,
+  calculateLemburJam,
+  calculateLemburAmount,
   isLate,
   calculateDenda,
   SHIFT_CONFIG,
   LATE_TOLERANCE_MINUTES,
-  DENDA_PER_LATE
+  DENDA_PER_LATE,
+  UANG_TRANSPORT_PER_DAY,
+  LEMBUR_RATE_PER_HOUR,
+  LEMBUR_MIN_HOURS,
+  JAM_KERJA_NORMAL
 } from './allowance';
 
 describe('calculateMasaKerja', () => {
@@ -98,5 +105,48 @@ describe('calculateDenda', () => {
     expect(calculateDenda(1)).toBe(25000);
     expect(calculateDenda(3)).toBe(75000);
     expect(calculateDenda(5)).toBe(125000);
+  });
+});
+
+describe('calculateUangTransport', () => {
+  it('returns 0 for no attendance', () => {
+    expect(calculateUangTransport(0)).toBe(0);
+  });
+
+  it('returns 10000 per attendance day', () => {
+    expect(calculateUangTransport(1)).toBe(10000);
+    expect(calculateUangTransport(20)).toBe(200000);
+    expect(calculateUangTransport(26)).toBe(260000);
+  });
+});
+
+describe('calculateLemburJam', () => {
+  it('returns 0 for work hours <= 8', () => {
+    expect(calculateLemburJam(6)).toBe(0);
+    expect(calculateLemburJam(8)).toBe(0);
+  });
+
+  it('returns 0 for overtime < 3 hours', () => {
+    expect(calculateLemburJam(9)).toBe(0);  // 1 hour overtime
+    expect(calculateLemburJam(10)).toBe(0); // 2 hours overtime
+    expect(calculateLemburJam(10.9)).toBe(0); // 2.9 hours overtime
+  });
+
+  it('returns overtime hours when >= 3 hours', () => {
+    expect(calculateLemburJam(11)).toBe(3);  // 3 hours overtime
+    expect(calculateLemburJam(12)).toBe(4);  // 4 hours overtime
+    expect(calculateLemburJam(15)).toBe(7);  // 7 hours overtime
+  });
+});
+
+describe('calculateLemburAmount', () => {
+  it('returns 0 for no overtime', () => {
+    expect(calculateLemburAmount(0)).toBe(0);
+  });
+
+  it('returns 7000 per overtime hour', () => {
+    expect(calculateLemburAmount(3)).toBe(21000);
+    expect(calculateLemburAmount(5)).toBe(35000);
+    expect(calculateLemburAmount(7)).toBe(49000);
   });
 });

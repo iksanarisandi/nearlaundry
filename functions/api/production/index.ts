@@ -38,6 +38,15 @@ app.post('/', async (c) => {
     return c.json({ message: 'Harga jasa wajib diisi untuk cuci satuan' }, 400);
   }
 
+  // Check if nota_number + process combination already exists (unique validation)
+  const existing = await c.env.DB.prepare(
+    'SELECT id FROM production WHERE nota_number = ? AND process = ?'
+  ).bind(nota_number.trim(), process).first();
+
+  if (existing) {
+    return c.json({ message: `Nota ${nota_number} sudah diinput untuk proses ${process}` }, 400);
+  }
+
   await c.env.DB.prepare(
     'INSERT INTO production (user_id, outlet_id, customer_name, nota_number, process, weight, qty, service_price) VALUES (?, ?, ?, ?, ?, ?, ?, ?)'
   )
@@ -45,6 +54,27 @@ app.post('/', async (c) => {
     .run();
 
   return c.json({ message: 'Produksi tersimpan' });
+});
+
+// Search/tracking production by nota number
+app.get('/search', async (c) => {
+  const { nota } = c.req.query();
+  
+  if (!nota) {
+    return c.json({ message: 'Parameter nota wajib diisi' }, 400);
+  }
+
+  const db = c.env.DB;
+  const results = await db.prepare(`
+    SELECT p.*, u.name as staff_name, o.name as outlet_name
+    FROM production p
+    JOIN users u ON p.user_id = u.id
+    LEFT JOIN outlets o ON p.outlet_id = o.id
+    WHERE p.nota_number LIKE ?
+    ORDER BY p.timestamp DESC
+  `).bind(`%${nota}%`).all();
+
+  return c.json(results.results ?? []);
 });
 
 export default app;
