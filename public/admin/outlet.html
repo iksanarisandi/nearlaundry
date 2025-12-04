@@ -49,6 +49,18 @@
           <label class="block text-xs font-medium text-slate-600 mb-1">Alamat</label>
           <input type="text" id="address" class="w-full rounded-lg border border-slate-200 px-3 py-2 text-sm" />
         </div>
+        <div class="grid grid-cols-2 gap-3">
+          <div>
+            <label class="block text-xs font-medium text-slate-600 mb-1">Latitude</label>
+            <input type="number" step="any" id="latitude" class="w-full rounded-lg border border-slate-200 px-3 py-2 text-sm" placeholder="-8.123456" />
+          </div>
+          <div>
+            <label class="block text-xs font-medium text-slate-600 mb-1">Longitude</label>
+            <input type="number" step="any" id="longitude" class="w-full rounded-lg border border-slate-200 px-3 py-2 text-sm" placeholder="115.123456" />
+          </div>
+        </div>
+        <button type="button" onclick="getMyLocation()" class="text-xs text-accent underline">📍 Ambil lokasi saya saat ini</button>
+        <p class="text-[10px] text-slate-500">Koordinat GPS untuk validasi absen (radius 200m)</p>
         <p id="status" class="text-xs text-slate-600"></p>
         <div class="flex gap-2">
           <button type="submit" class="btn-primary text-sm">Simpan</button>
@@ -64,6 +76,7 @@
             <th class="py-2">ID</th>
             <th class="py-2">Nama</th>
             <th class="py-2">Alamat</th>
+            <th class="py-2">Koordinat GPS</th>
             <th class="py-2 text-right">Aksi</th>
           </tr>
         </thead>
@@ -84,12 +97,14 @@
       body.innerHTML = '';
       data.forEach(o => {
         const tr = document.createElement('tr');
+        const gpsText = (o.latitude && o.longitude) ? `${o.latitude}, ${o.longitude}` : '<span class="text-slate-400">Belum diset</span>';
         tr.innerHTML = `
           <td class="py-2">${o.id}</td>
           <td class="py-2">${o.name}</td>
           <td class="py-2">${o.address || '-'}</td>
+          <td class="py-2 text-[10px]">${gpsText}</td>
           <td class="py-2 text-right">
-            <button onclick="editOutlet(${o.id}, '${o.name}', '${o.address || ''}')" class="text-accent underline mr-2">Edit</button>
+            <button onclick='editOutlet(${JSON.stringify(o)})' class="text-accent underline mr-2">Edit</button>
             <button onclick="deleteOutlet(${o.id})" class="text-red-500 underline">Hapus</button>
           </td>
         `;
@@ -108,12 +123,27 @@
       document.getElementById('form-card').classList.add('hidden');
     }
 
-    function editOutlet(id, name, address) {
+    function editOutlet(o) {
       document.getElementById('form-card').classList.remove('hidden');
       document.getElementById('form-title').textContent = 'Edit Outlet';
-      document.getElementById('outlet_id').value = id;
-      document.getElementById('name').value = name;
-      document.getElementById('address').value = address;
+      document.getElementById('outlet_id').value = o.id;
+      document.getElementById('name').value = o.name;
+      document.getElementById('address').value = o.address || '';
+      document.getElementById('latitude').value = o.latitude || '';
+      document.getElementById('longitude').value = o.longitude || '';
+    }
+
+    function getMyLocation() {
+      if (!navigator.geolocation) {
+        alert('Browser tidak mendukung GPS');
+        return;
+      }
+      navigator.geolocation.getCurrentPosition((pos) => {
+        document.getElementById('latitude').value = pos.coords.latitude;
+        document.getElementById('longitude').value = pos.coords.longitude;
+      }, (err) => {
+        alert('Gagal mengambil lokasi: ' + err.message);
+      });
     }
 
     async function deleteOutlet(id) {
@@ -130,7 +160,9 @@
       const id = document.getElementById('outlet_id').value;
       const payload = {
         name: document.getElementById('name').value,
-        address: document.getElementById('address').value
+        address: document.getElementById('address').value,
+        latitude: document.getElementById('latitude').value ? parseFloat(document.getElementById('latitude').value) : null,
+        longitude: document.getElementById('longitude').value ? parseFloat(document.getElementById('longitude').value) : null
       };
       const url = id ? '/api/admin/outlets/' + id : '/api/admin/outlets';
       const method = id ? 'PUT' : 'POST';
