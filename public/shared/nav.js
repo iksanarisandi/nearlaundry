@@ -23,4 +23,29 @@ function ensureRole(expectedRoles) {
   }
 }
 
-window.NearMeNav = { getUser, getToken, logout, ensureRole };
+function renderAdminNav(currentPage) {
+  const menuItems = [
+    { href: '/admin/dashboard.html', label: 'Dashboard', key: 'dashboard' },
+    { href: '/admin/tracking.html', label: 'Tracking', key: 'tracking' },
+    { href: '/admin/omzet.html', label: 'Omzet', key: 'omzet' },
+    { href: '/admin/payroll-v2.html', label: 'Payroll', key: 'payroll' },
+    { href: '/admin/kasbon.html', label: 'Kasbon', key: 'kasbon' },
+    { href: '/admin/komisi.html', label: 'Komisi', key: 'komisi' },
+    { href: '/admin/stok.html', label: 'Stok', key: 'stok' },
+    { href: '/admin/outlet.html', label: 'Outlet', key: 'outlet' },
+    { href: '/admin/users.html', label: 'User', key: 'users' },
+    { href: '/admin/settings.html', label: 'Settings', key: 'settings' },
+  ];
+
+  const nav = document.querySelector('header nav');
+  if (!nav) return;
+
+  nav.innerHTML = menuItems.map(item => {
+    const isActive = item.key === currentPage;
+    const cls = isActive ? 'text-primary font-semibold' : '';
+    return `<a href="${item.href}" class="${cls}">${item.label}</a>`;
+  }).join('') + '<button onclick="NearMeNav.logout()" class="ml-2 text-red-500">Keluar</button>';
+}
+
+// v2 - unified admin nav
+window.NearMeNav = { getUser, getToken, logout, ensureRole, renderAdminNav };

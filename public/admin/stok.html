@@ -1,3 +1,4 @@
+<!-- nav-v2 -->
 <!doctype html>
 <html lang="id" class="h-full">
 <head>
@@ -17,17 +18,8 @@
           <div class="text-[11px] text-slate-500">Kelola Stok Gudang</div>
         </div>
       </div>
-      <nav class="flex items-center gap-3 text-[11px] text-slate-600">
-        <a href="/admin/dashboard.html">Dashboard</a>
-        <a href="/admin/omzet.html">Omzet</a>
-        <a href="/admin/payroll-v2.html">Payroll</a>
-        <a href="/admin/komisi.html">Komisi</a>
-        <a href="/admin/stok.html" class="text-primary font-semibold">Stok</a>
-        <a href="/admin/outlet.html">Outlet</a>
-        <a href="/admin/users.html">User</a>
-        <a href="/admin/settings.html">Settings</a>
-        <button onclick="NearMeNav.logout()" class="ml-2 text-red-500">Keluar</button>
-      </nav>
+      <nav class="flex items-center gap-3 text-[11px] text-slate-600"></nav>
+      <script>document.addEventListener('DOMContentLoaded', () => NearMeNav.renderAdminNav('stok'));</script>
     </div>
   </header>
 
@@ -184,3 +176,4 @@
   </script>
 </body>
 </html>
+

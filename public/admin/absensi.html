@@ -1,3 +1,4 @@
+<!-- nav-v2 -->
 <!doctype html>
 <html lang="id" class="h-full">
 <head>
@@ -17,14 +18,8 @@
           <div class="text-[11px] text-slate-500">Mini ERP Laundry Harian</div>
         </div>
       </div>
-      <nav class="flex items-center gap-3 text-[11px] text-slate-600">
-        <a href="/admin/dashboard.html">Dashboard</a>
-        <a href="/admin/omzet.html">Omzet</a>
-        <a href="/admin/absensi.html" class="text-primary font-semibold">Absensi</a>
-        <a href="/admin/payroll.html">Payroll</a>
-        <a href="/admin/users.html">User</a>
-        <button onclick="NearMeNav.logout()" class="ml-2 text-red-500">Keluar</button>
-      </nav>
+      <nav class="flex items-center gap-3 text-[11px] text-slate-600"></nav>
+      <script>document.addEventListener('DOMContentLoaded', () => NearMeNav.renderAdminNav('absensi'));</script>
     </div>
   </header>
 
@@ -120,3 +115,4 @@
   </script>
 </body>
 </html>
+
