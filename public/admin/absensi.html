@@ -35,6 +35,12 @@
           <label class="block text-slate-600 mb-1">Tanggal</label>
           <input type="date" id="date" class="rounded-lg border border-slate-200 px-2 py-1" />
         </div>
+        <div class="flex items-center gap-2 mt-4 md:mt-0">
+          <label class="flex items-center gap-1 text-slate-600 cursor-pointer">
+            <input type="checkbox" id="show-annulled" checked class="rounded border-slate-300" />
+            <span>Tampilkan Dianulir</span>
+          </label>
+        </div>
         <button id="btn-load" class="btn-secondary mt-4 md:mt-0">Terapkan</button>
       </div>
     </div>
@@ -48,6 +54,8 @@
             <th class="py-1">Tipe</th>
             <th class="py-1">Waktu</th>
             <th class="py-1">Lokasi</th>
+            <th class="py-1">Status</th>
+            <th class="py-1">Aksi</th>
           </tr>
         </thead>
         <tbody id="att-body" class="divide-y"></tbody>
@@ -55,6 +63,25 @@
       <p id="status" class="text-xs text-slate-600 mt-3"></p>
     </div>
   </main>
+
+  <!-- Modal Konfirmasi Anulir -->
+  <div id="modal-annul" class="fixed inset-0 bg-black/50 hidden items-center justify-center z-50">
+    <div class="bg-white rounded-lg shadow-xl w-full max-w-md mx-4 p-5">
+      <h3 class="text-base font-semibold mb-3">Anulir Absensi</h3>
+      <p class="text-xs text-slate-600 mb-3">
+        Anda akan menganulir absensi <strong id="annul-name"></strong> (<span id="annul-type"></span>) pada <span id="annul-time"></span>.
+      </p>
+      <div class="mb-4">
+        <label class="block text-xs text-slate-600 mb-1">Alasan Anulir <span class="text-red-500">*</span></label>
+        <textarea id="annul-reason" rows="3" class="w-full rounded-lg border border-slate-200 px-3 py-2 text-xs" placeholder="Masukkan alasan anulir absensi..."></textarea>
+        <p id="annul-error" class="text-xs text-red-500 mt-1 hidden">Alasan wajib diisi</p>
+      </div>
+      <div class="flex justify-end gap-2">
+        <button id="btn-cancel-annul" class="btn-secondary text-xs">Batal</button>
+        <button id="btn-confirm-annul" class="btn-primary text-xs">Konfirmasi Anulir</button>
+      </div>
+    </div>
+  </div>
 
   <script>
     function getToken() {
@@ -68,11 +95,91 @@
       return d.toLocaleTimeString('id-ID', { hour: '2-digit', minute: '2-digit', second: '2-digit' });
     }
 
+    function formatDateTime(iso) {
+      if (!iso) return '-';
+      const d = new Date(iso);
+      if (Number.isNaN(d.getTime())) return iso;
+      return d.toLocaleString('id-ID', { 
+        day: '2-digit', month: '2-digit', year: 'numeric',
+        hour: '2-digit', minute: '2-digit' 
+      });
+    }
+
+    // Modal state
+    let selectedAttendance = null;
+    const modal = document.getElementById('modal-annul');
+    const annulReason = document.getElementById('annul-reason');
+    const annulError = document.getElementById('annul-error');
+    const annulName = document.getElementById('annul-name');
+    const annulType = document.getElementById('annul-type');
+    const annulTime = document.getElementById('annul-time');
+
+    function openAnnulModal(row) {
+      selectedAttendance = row;
+      annulName.textContent = row.name;
+      annulType.textContent = row.type === 'in' ? 'Masuk' : 'Pulang';
+      annulTime.textContent = formatTime(row.timestamp);
+      annulReason.value = '';
+      annulError.classList.add('hidden');
+      modal.classList.remove('hidden');
+      modal.classList.add('flex');
+      annulReason.focus();
+    }
+
+    function closeAnnulModal() {
+      modal.classList.add('hidden');
+      modal.classList.remove('flex');
+      selectedAttendance = null;
+    }
+
+    async function confirmAnnul() {
+      const reason = annulReason.value.trim();
+      if (!reason) {
+        annulError.classList.remove('hidden');
+        annulReason.focus();
+        return;
+      }
+      annulError.classList.add('hidden');
+
+      try {
+        const res = await fetch('/api/admin/attendance/annul', {
+          method: 'POST',
+          headers: {
+            'Content-Type': 'application/json',
+            'Authorization': 'Bearer ' + getToken()
+          },
+          body: JSON.stringify({
+            attendance_id: selectedAttendance.id,
+            reason: reason
+          })
+        });
+        const data = await res.json();
+        if (res.ok && data.success) {
+          closeAnnulModal();
+          loadAttendance(dateInput.value);
+        } else {
+          alert(data.message || 'Gagal menganulir absensi');
+        }
+      } catch {
+        alert('Terjadi kesalahan saat menganulir absensi');
+      }
+    }
+
+    document.getElementById('btn-cancel-annul').addEventListener('click', closeAnnulModal);
+    document.getElementById('btn-confirm-annul').addEventListener('click', confirmAnnul);
+    modal.addEventListener('click', (e) => {
+      if (e.target === modal) closeAnnulModal();
+    });
+
     async function loadAttendance(dateStr) {
       const statusEl = document.getElementById('status');
       statusEl.textContent = 'Memuat absensi...';
       try {
-        const params = new URLSearchParams({ date: dateStr });
+        const showAnnulled = document.getElementById('show-annulled').checked;
+        const params = new URLSearchParams({ 
+          date: dateStr,
+          include_annulled: showAnnulled ? 'true' : 'false'
+        });
         const res = await fetch('/api/attendance/all?' + params.toString(), {
           headers: { 'Authorization': 'Bearer ' + getToken() },
         });
@@ -86,15 +193,59 @@
         data.forEach((row) => {
           const tr = document.createElement('tr');
           const loc = row.lat != null && row.lng != null ? `${row.lat.toFixed(5)}, ${row.lng.toFixed(5)}` : '-';
+          const isAnnulled = row.status === 'annulled';
+          
+          // Status column
+          let statusHtml = '<span class="text-green-600">Aktif</span>';
+          if (isAnnulled) {
+            statusHtml = `
+              <span class="inline-flex items-center gap-1 px-2 py-0.5 rounded-full bg-red-100 text-red-700 text-[10px]">
+                Dianulir
+              </span>
+              <div class="text-[10px] text-slate-500 mt-1">
+                <div>Oleh: ${row.annulled_by_name || '-'}</div>
+                <div>Waktu: ${formatDateTime(row.annulled_at)}</div>
+                <div>Alasan: ${row.annulled_reason || '-'}</div>
+              </div>
+            `;
+          }
+
+          // Action column - only show annul button for active records
+          let actionHtml = '';
+          if (!isAnnulled) {
+            actionHtml = `
+              <button class="btn-annul text-[10px] px-2 py-1 bg-red-50 text-red-600 rounded hover:bg-red-100" 
+                      data-row='${JSON.stringify(row).replace(/'/g, "&#39;")}'>
+                Anulir
+              </button>
+            `;
+          } else {
+            actionHtml = '<span class="text-slate-400 text-[10px]">-</span>';
+          }
+
+          // Apply strikethrough style for annulled records
+          const textClass = isAnnulled ? 'line-through text-slate-400' : '';
+
           tr.innerHTML = `
-            <td class="py-1">${row.name}</td>
-            <td class="py-1">${row.role}</td>
-            <td class="py-1">${row.type === 'in' ? 'Masuk' : 'Pulang'}</td>
-            <td class="py-1">${formatTime(row.timestamp)}</td>
-            <td class="py-1">${loc}</td>
+            <td class="py-1 ${textClass}">${row.name}</td>
+            <td class="py-1 ${textClass}">${row.role}</td>
+            <td class="py-1 ${textClass}">${row.type === 'in' ? 'Masuk' : 'Pulang'}</td>
+            <td class="py-1 ${textClass}">${formatTime(row.timestamp)}</td>
+            <td class="py-1 ${textClass}">${loc}</td>
+            <td class="py-1">${statusHtml}</td>
+            <td class="py-1">${actionHtml}</td>
           `;
           body.appendChild(tr);
         });
+
+        // Add click handlers for annul buttons
+        document.querySelectorAll('.btn-annul').forEach(btn => {
+          btn.addEventListener('click', () => {
+            const rowData = JSON.parse(btn.dataset.row);
+            openAnnulModal(rowData);
+          });
+        });
+
         statusEl.textContent = data.length ? '' : 'Belum ada data absensi.';
       } catch {
         statusEl.textContent = 'Terjadi kesalahan memuat absensi';
@@ -103,6 +254,7 @@
 
     const dateInput = document.getElementById('date');
     const btnLoad = document.getElementById('btn-load');
+    const showAnnulledCheckbox = document.getElementById('show-annulled');
 
     const today = new Date();
     dateInput.valueAsDate = today;
@@ -110,6 +262,10 @@
     btnLoad.addEventListener('click', () => {
       if (!dateInput.value) return;
       loadAttendance(dateInput.value);
+    });
+
+    showAnnulledCheckbox.addEventListener('change', () => {
+      if (dateInput.value) loadAttendance(dateInput.value);
     });
 
     loadAttendance(dateInput.value);

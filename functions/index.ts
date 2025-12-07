@@ -15,6 +15,7 @@ import payrollNewRoute from './api/admin/payroll-new';
 import settingsRoute from './api/admin/settings';
 import kasbonRoute from './api/admin/kasbon';
 import trackingRoute from './api/admin/tracking';
+import attendanceAnnulRoute from './api/admin/attendance_annul';
 import productionRoute from './api/production/index';
 import attendanceRoute from './api/production/attendance';
 import expensesRoute from './api/production/expenses';
@@ -59,6 +60,7 @@ app.route('/api/admin/warehouse', adminWarehouseRoute);
 app.route('/api/admin/settings', settingsRoute);
 app.route('/api/admin/kasbon', kasbonRoute);
 app.route('/api/admin/tracking', trackingRoute);
+app.route('/api/admin/attendance/annul', attendanceAnnulRoute);
 
 // Production routes
 app.route('/api/production', productionRoute);
