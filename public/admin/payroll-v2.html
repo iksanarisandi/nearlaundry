@@ -9,6 +9,7 @@
   <link rel="stylesheet" href="/styles.css" />
   <script src="/shared/nav.js" defer></script>
   <script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js"></script>
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/html2canvas/1.4.1/html2canvas.min.js"></script>
 </head>
 <body class="min-h-full flex flex-col bg-slate-100" onload="NearMeNav.ensureRole(['admin'])">
   <header class="bg-white shadow-sm">
@@ -66,6 +67,39 @@
           </thead>
           <tbody id="payroll-body" class="divide-y"></tbody>
         </table>
+      </div>
+    </div>
+
+    <!-- Slip Preview Modal -->
+    <div id="slip-modal" class="fixed inset-0 bg-black bg-opacity-50 hidden z-50 flex items-center justify-center">
+      <div class="bg-white rounded-lg shadow-xl max-w-lg w-full mx-4 max-h-[90vh] overflow-y-auto">
+        <div class="p-4 border-b flex items-center justify-between">
+          <h3 class="font-semibold text-sm">Preview Slip Gaji</h3>
+          <button onclick="closeSlipModal()" class="text-slate-400 hover:text-slate-600">
+            <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+              <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12"></path>
+            </svg>
+          </button>
+        </div>
+        <div id="slip-preview-container" class="p-4 flex justify-center">
+          <!-- Slip HTML will be rendered here -->
+        </div>
+        <div class="p-4 border-t flex gap-2 justify-end">
+          <button onclick="downloadSlipImage()" class="btn-secondary text-sm flex items-center gap-1">
+            <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+              <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 16v1a3 3 0 003 3h10a3 3 0 003-3v-1m-4-4l-4 4m0 0l-4-4m4 4V4"></path>
+            </svg>
+            Download Gambar
+          </button>
+          <button id="btn-open-wa" onclick="openWhatsApp()" class="btn-primary text-sm flex items-center gap-1">
+            <svg class="w-4 h-4" fill="currentColor" viewBox="0 0 24 24">
+              <path d="M17.472 14.382c-.297-.149-1.758-.867-2.03-.967-.273-.099-.471-.148-.67.15-.197.297-.767.966-.94 1.164-.173.199-.347.223-.644.075-.297-.15-1.255-.463-2.39-1.475-.883-.788-1.48-1.761-1.653-2.059-.173-.297-.018-.458.13-.606.134-.133.298-.347.446-.52.149-.174.198-.298.298-.497.099-.198.05-.371-.025-.52-.075-.149-.669-1.612-.916-2.207-.242-.579-.487-.5-.669-.51-.173-.008-.371-.01-.57-.01-.198 0-.52.074-.792.372-.272.297-1.04 1.016-1.04 2.479 0 1.462 1.065 2.875 1.213 3.074.149.198 2.096 3.2 5.077 4.487.709.306 1.262.489 1.694.625.712.227 1.36.195 1.871.118.571-.085 1.758-.719 2.006-1.413.248-.694.248-1.289.173-1.413-.074-.124-.272-.198-.57-.347m-5.421 7.403h-.004a9.87 9.87 0 01-5.031-1.378l-.361-.214-3.741.982.998-3.648-.235-.374a9.86 9.86 0 01-1.51-5.26c.001-5.45 4.436-9.884 9.888-9.884 2.64 0 5.122 1.03 6.988 2.898a9.825 9.825 0 012.893 6.994c-.003 5.45-4.437 9.884-9.885 9.884m8.413-18.297A11.815 11.815 0 0012.05 0C5.495 0 .16 5.335.157 11.892c0 2.096.547 4.142 1.588 5.945L.057 24l6.305-1.654a11.882 11.882 0 005.683 1.448h.005c6.554 0 11.89-5.335 11.893-11.893a11.821 11.821 0 00-3.48-8.413z"/>
+            </svg>
+            Buka WhatsApp
+          </button>
+          <button onclick="closeSlipModal()" class="btn-secondary text-sm">Tutup</button>
+        </div>
+        <p id="slip-error" class="px-4 pb-4 text-xs text-red-500 hidden"></p>
       </div>
     </div>
 
@@ -196,6 +230,7 @@
       body.innerHTML = '';
       payrollData.forEach(p => {
         const tr = document.createElement('tr');
+        const pJson = JSON.stringify(p).replace(/'/g, "\\'");
         tr.innerHTML = `
           <td class="py-2">${p.name}</td>
           <td class="py-2"><span class="px-1 py-0.5 rounded bg-slate-100 text-[10px]">${p.role}</span></td>
@@ -204,8 +239,9 @@
           <td class="py-2 text-right text-red-500">${formatRupiah(p.potongan)}</td>
           <td class="py-2 text-right font-semibold">${formatRupiah(p.gaji_bersih)}</td>
           <td class="py-2 text-right space-x-1">
-            <button onclick='editPayroll(${JSON.stringify(p)})' class="text-accent underline">Edit</button>
-            <button onclick='generateSlipPDF(${JSON.stringify(p)})' class="text-green-600 underline">Slip PDF</button>
+            <button onclick='editPayroll(${pJson})' class="text-accent underline">Edit</button>
+            <button onclick='generateSlipPDF(${pJson})' class="text-green-600 underline">Slip PDF</button>
+            <button onclick='sendToWhatsApp(${pJson})' class="text-emerald-600 underline">Slip PNG</button>
           </td>
         `;
         body.appendChild(tr);
@@ -449,6 +485,251 @@
         loadPayroll();
       }
     });
+
+    // ============================================
+    // WhatsApp Slip Functions
+    // Feature: payroll-slip-whatsapp
+    // Requirements: 2.1, 2.2, 2.3, 2.4, 3.1, 3.2, 3.3, 3.4
+    // ============================================
+    
+    let currentSlipData = null;
+    
+    /**
+     * Sanitize name for filename
+     */
+    function sanitizeName(name) {
+      return name.trim().replace(/\s+/g, '_').replace(/[^a-zA-Z0-9_]/g, '');
+    }
+    
+    /**
+     * Generate slip filename
+     * Requirements: 2.3
+     */
+    function generateSlipFilename(name, month, year) {
+      const sanitizedName = sanitizeName(name);
+      const monthName = monthNames[month] || '';
+      return `slip_gaji_${sanitizedName}_${monthName}_${year}.png`;
+    }
+    
+    /**
+     * Generate WhatsApp link with pre-filled message
+     * Requirements: 3.2, 3.3
+     */
+    function generateWhatsAppLink(phone, name, period) {
+      const message = `Halo ${name}, berikut slip gaji Anda untuk periode ${period}. Silakan cek lampiran gambar.`;
+      const encodedMessage = encodeURIComponent(message);
+      return `https://wa.me/${phone}?text=${encodedMessage}`;
+    }
+    
+    /**
+     * Generate slip HTML for rendering
+     * Requirements: 4.2
+     */
+    function generateSlipHTML(data) {
+      const monthName = monthNames[data.month] || '';
+      const period = `${monthName} ${data.year}`;
+      
+      const lemburJamTotal = (data.lembur_jam || 0) * (data.lembur_jam_rate || 7000);
+      const lemburLiburTotal = (data.lembur_libur || 0) * (data.lembur_libur_rate || 35000);
+      
+      // Build income items
+      const incomeItems = [];
+      if (data.gaji_pokok > 0) incomeItems.push({ label: 'Gaji Pokok', value: data.gaji_pokok });
+      if (data.uang_makan > 0) incomeItems.push({ label: 'Uang Makan', value: data.uang_makan });
+      if (data.uang_transport > 0) incomeItems.push({ label: 'Uang Transport', value: data.uang_transport });
+      if (lemburJamTotal > 0) incomeItems.push({ 
+        label: `Lembur Jam (${data.lembur_jam} jam x ${formatRupiah(data.lembur_jam_rate || 7000)})`, 
+        value: lemburJamTotal 
+      });
+      if (lemburLiburTotal > 0) incomeItems.push({ 
+        label: `Lembur Libur (${data.lembur_libur} shift x ${formatRupiah(data.lembur_libur_rate || 35000)})`, 
+        value: lemburLiburTotal 
+      });
+      if (data.tunjangan_jabatan > 0) incomeItems.push({ label: 'Tunjangan Jabatan', value: data.tunjangan_jabatan });
+      if (data.thr > 0) incomeItems.push({ label: 'THR', value: data.thr });
+      if (data.komisi_total > 0) incomeItems.push({ label: 'Komisi', value: data.komisi_total });
+      
+      // Build deduction items
+      const deductionItems = [];
+      if (data.denda_terlambat > 0) deductionItems.push({ label: 'Denda Keterlambatan', value: data.denda_terlambat });
+      if (data.denda > 0) deductionItems.push({ label: 'Denda Lainnya', value: data.denda });
+      if (data.kasbon > 0) deductionItems.push({ label: 'Kasbon', value: data.kasbon });
+      
+      const incomeRowsHTML = incomeItems.map(item => `
+        <tr>
+          <td style="padding: 4px 8px; font-size: 12px;">${item.label}</td>
+          <td style="padding: 4px 8px; font-size: 12px; text-align: right;">${formatRupiah(item.value)}</td>
+        </tr>
+      `).join('');
+      
+      const deductionRowsHTML = deductionItems.map(item => `
+        <tr>
+          <td style="padding: 4px 8px; font-size: 12px;">${item.label}</td>
+          <td style="padding: 4px 8px; font-size: 12px; text-align: right;">${formatRupiah(item.value)}</td>
+        </tr>
+      `).join('');
+
+      return `
+<div id="slip-content" style="width: 400px; padding: 20px; background: white; font-family: Arial, sans-serif; border: 1px solid #ddd;">
+  <div style="text-align: center; margin-bottom: 16px; border-bottom: 2px solid #333; padding-bottom: 12px;">
+    <h1 style="margin: 0; font-size: 18px; font-weight: bold;">SLIP GAJI KARYAWAN</h1>
+    <p style="margin: 4px 0 0 0; font-size: 14px; color: #666;">NearMe Laundry</p>
+  </div>
+  
+  <div style="margin-bottom: 16px; font-size: 12px;">
+    <table style="width: 100%;">
+      <tr>
+        <td style="padding: 2px 0; width: 100px;">Nama</td>
+        <td style="padding: 2px 0;">: <strong>${data.name}</strong></td>
+      </tr>
+      <tr>
+        <td style="padding: 2px 0;">Periode</td>
+        <td style="padding: 2px 0;">: ${period}</td>
+      </tr>
+      <tr>
+        <td style="padding: 2px 0;">Cabang</td>
+        <td style="padding: 2px 0;">: ${data.outletName}</td>
+      </tr>
+    </table>
+  </div>
+  
+  <div style="margin-bottom: 12px;">
+    <div style="background: #f0f9f0; padding: 6px 8px; font-weight: bold; font-size: 13px; border-left: 3px solid #22c55e;">
+      PENDAPATAN
+    </div>
+    <table style="width: 100%; border-collapse: collapse;">
+      ${incomeRowsHTML}
+      <tr style="border-top: 1px solid #ddd; font-weight: bold;">
+        <td style="padding: 6px 8px; font-size: 12px;">Total Pendapatan</td>
+        <td style="padding: 6px 8px; font-size: 12px; text-align: right; color: #22c55e;">${formatRupiah(data.pendapatan)}</td>
+      </tr>
+    </table>
+  </div>
+  
+  <div style="margin-bottom: 12px;">
+    <div style="background: #fef2f2; padding: 6px 8px; font-weight: bold; font-size: 13px; border-left: 3px solid #ef4444;">
+      POTONGAN
+    </div>
+    <table style="width: 100%; border-collapse: collapse;">
+      ${deductionRowsHTML.length > 0 ? deductionRowsHTML : '<tr><td style="padding: 4px 8px; font-size: 12px; color: #999;">Tidak ada potongan</td></tr>'}
+      <tr style="border-top: 1px solid #ddd; font-weight: bold;">
+        <td style="padding: 6px 8px; font-size: 12px;">Total Potongan</td>
+        <td style="padding: 6px 8px; font-size: 12px; text-align: right; color: #ef4444;">${formatRupiah(data.potongan)}</td>
+      </tr>
+    </table>
+  </div>
+  
+  <div style="background: #1e40af; color: white; padding: 12px; text-align: center; margin-top: 16px;">
+    <div style="font-size: 12px; margin-bottom: 4px;">GAJI BERSIH</div>
+    <div style="font-size: 20px; font-weight: bold;">${formatRupiah(data.gaji_bersih)}</div>
+  </div>
+  
+  <div style="margin-top: 12px; text-align: center; font-size: 10px; color: #999;">
+    Slip gaji ini digenerate secara otomatis oleh sistem NearMe Laundry
+  </div>
+</div>
+      `.trim();
+    }
+    
+    /**
+     * Send payroll slip to WhatsApp
+     * Requirements: 2.1, 2.2, 2.3, 2.4, 3.1, 3.2, 3.3, 3.4
+     */
+    async function sendToWhatsApp(payrollData) {
+      const month = document.getElementById('month').value;
+      const year = document.getElementById('year').value;
+      const outletId = document.getElementById('outlet').value;
+      const outletName = outletId ? outletsData.find(o => o.id == outletId)?.name : 'Semua Outlet';
+      
+      // Prepare slip data
+      currentSlipData = {
+        ...payrollData,
+        month: parseInt(month),
+        year: parseInt(year),
+        outletName: outletName
+      };
+      
+      // Show modal
+      const modal = document.getElementById('slip-modal');
+      const previewContainer = document.getElementById('slip-preview-container');
+      const errorEl = document.getElementById('slip-error');
+      const waButton = document.getElementById('btn-open-wa');
+      
+      // Generate and render slip HTML
+      const slipHTML = generateSlipHTML(currentSlipData);
+      previewContainer.innerHTML = slipHTML;
+      
+      // Handle phone number availability
+      if (!currentSlipData.phone) {
+        waButton.disabled = true;
+        waButton.classList.add('opacity-50', 'cursor-not-allowed');
+        errorEl.textContent = 'Nomor telepon karyawan belum diisi. Silakan update data karyawan terlebih dahulu.';
+        errorEl.classList.remove('hidden');
+      } else {
+        waButton.disabled = false;
+        waButton.classList.remove('opacity-50', 'cursor-not-allowed');
+        errorEl.classList.add('hidden');
+      }
+      
+      modal.classList.remove('hidden');
+      
+      // Auto-download image
+      await downloadSlipImage();
+    }
+    
+    /**
+     * Download slip as PNG image
+     * Requirements: 2.2, 2.3
+     */
+    async function downloadSlipImage() {
+      const slipContent = document.getElementById('slip-content');
+      if (!slipContent || !currentSlipData) return;
+      
+      try {
+        const canvas = await html2canvas(slipContent, {
+          scale: 2,
+          backgroundColor: '#ffffff',
+          useCORS: true
+        });
+        
+        const link = document.createElement('a');
+        link.download = generateSlipFilename(currentSlipData.name, currentSlipData.month, currentSlipData.year);
+        link.href = canvas.toDataURL('image/png');
+        link.click();
+      } catch (err) {
+        console.error('Error generating slip image:', err);
+        const errorEl = document.getElementById('slip-error');
+        errorEl.textContent = 'Gagal membuat gambar slip. Silakan coba lagi.';
+        errorEl.classList.remove('hidden');
+      }
+    }
+    
+    /**
+     * Open WhatsApp with pre-filled message
+     * Requirements: 3.1, 3.2, 3.3, 3.4
+     */
+    function openWhatsApp() {
+      if (!currentSlipData || !currentSlipData.phone) {
+        const errorEl = document.getElementById('slip-error');
+        errorEl.textContent = 'Nomor telepon karyawan belum diisi.';
+        errorEl.classList.remove('hidden');
+        return;
+      }
+      
+      const monthName = monthNames[currentSlipData.month] || '';
+      const period = `${monthName} ${currentSlipData.year}`;
+      const waLink = generateWhatsAppLink(currentSlipData.phone, currentSlipData.name, period);
+      
+      window.open(waLink, '_blank');
+    }
+    
+    /**
+     * Close slip preview modal
+     */
+    function closeSlipModal() {
+      document.getElementById('slip-modal').classList.add('hidden');
+      currentSlipData = null;
+    }
 
     loadOutlets();
     loadPayroll();

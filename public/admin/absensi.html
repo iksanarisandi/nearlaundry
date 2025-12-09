@@ -65,8 +65,9 @@
   </main>
 
   <!-- Modal Konfirmasi Anulir -->
-  <div id="modal-annul" class="fixed inset-0 bg-black/50 hidden z-50 flex items-center justify-center">
-    <div class="bg-white rounded-lg shadow-xl w-full max-w-md mx-4 p-5 transform">
+  <div id="modal-annul" class="fixed inset-0 z-50 flex items-center justify-center" style="display: none;">
+    <div class="fixed inset-0 bg-black/50" id="modal-backdrop"></div>
+    <div class="relative bg-white rounded-lg shadow-xl w-full max-w-md mx-4 p-5 z-10">
       <h3 class="text-base font-semibold mb-3">Anulir Absensi</h3>
       <p class="text-xs text-slate-600 mb-3">
         Anda akan menganulir absensi <strong id="annul-name"></strong> (<span id="annul-type"></span>) pada <span id="annul-time"></span>.
@@ -121,12 +122,12 @@
       annulTime.textContent = formatTime(row.timestamp);
       annulReason.value = '';
       annulError.classList.add('hidden');
-      modal.classList.remove('hidden');
+      modal.style.display = 'flex';
       annulReason.focus();
     }
 
     function closeAnnulModal() {
-      modal.classList.add('hidden');
+      modal.style.display = 'none';
       selectedAttendance = null;
     }
 
@@ -165,9 +166,7 @@
 
     document.getElementById('btn-cancel-annul').addEventListener('click', closeAnnulModal);
     document.getElementById('btn-confirm-annul').addEventListener('click', confirmAnnul);
-    modal.addEventListener('click', (e) => {
-      if (e.target === modal) closeAnnulModal();
-    });
+    document.getElementById('modal-backdrop').addEventListener('click', closeAnnulModal);
 
     async function loadAttendance(dateStr) {
       const statusEl = document.getElementById('status');

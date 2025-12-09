@@ -1,6 +1,7 @@
 import { Hono } from 'hono';
 import type { Env } from '../../index';
 import { authMiddleware, requireRole } from '../../_utils/auth';
+import { validateAndNormalizePhone } from '../../_utils/phone';
 import bcrypt from 'bcryptjs';
 
 const app = new Hono<{ Bindings: Env; Variables: { user: any } }>();
@@ -10,20 +11,30 @@ app.use('*', authMiddleware, requireRole(['admin']));
 // List user
 app.get('/', async (c) => {
   const db = c.env.DB;
-  const result = await db.prepare('SELECT id, name, email, role, outlet_id, join_date, created_at FROM users ORDER BY id DESC').all();
+  const result = await db.prepare('SELECT id, name, email, role, outlet_id, join_date, phone, created_at FROM users ORDER BY id DESC').all();
   return c.json(result.results ?? []);
 });
 
 // Tambah user
 app.post('/', async (c) => {
   try {
-    const { name, email, role, outlet_id, password, join_date } = await c.req.json();
+    const { name, email, role, outlet_id, password, join_date, phone } = await c.req.json();
 
     if (!name || !email || !role) {
       return c.json({ message: 'Nama, email, dan role wajib diisi' }, 400);
     }
     if (!['admin','gudang','produksi','kurir'].includes(role)) {
       return c.json({ message: 'Role tidak valid' }, 400);
+    }
+
+    // Validate phone if provided
+    let normalizedPhone: string | null = null;
+    if (phone && phone.trim()) {
+      const phoneValidation = validateAndNormalizePhone(phone);
+      if (!phoneValidation.isValid) {
+        return c.json({ message: phoneValidation.error }, 400);
+      }
+      normalizedPhone = phoneValidation.normalized;
     }
 
     const db = c.env.DB;
@@ -37,8 +48,8 @@ app.post('/', async (c) => {
     const hash = await bcrypt.hash(pwd, 10);
 
     await db.prepare(
-      'INSERT INTO users (name, email, password_hash, role, outlet_id, join_date) VALUES (?, ?, ?, ?, ?, ?)' 
-    ).bind(name, email, hash, role, outlet_id ?? null, join_date ?? null).run();
+      'INSERT INTO users (name, email, password_hash, role, outlet_id, join_date, phone) VALUES (?, ?, ?, ?, ?, ?, ?)' 
+    ).bind(name, email, hash, role, outlet_id ?? null, join_date ?? null, normalizedPhone).run();
 
     return c.json({ message: 'User berhasil dibuat', defaultPassword: pwd === 'laundry123' ? pwd : undefined });
   } catch (err: any) {
@@ -50,7 +61,7 @@ app.post('/', async (c) => {
 // Update user (tanpa ubah password)
 app.put('/:id', async (c) => {
   const id = Number(c.req.param('id'));
-  const { name, role, outlet_id, join_date } = await c.req.json();
+  const { name, role, outlet_id, join_date, phone } = await c.req.json();
 
   if (!id) {
     return c.json({ message: 'ID tidak valid' }, 400);
@@ -64,9 +75,19 @@ app.put('/:id', async (c) => {
     return c.json({ message: 'Role tidak valid' }, 400);
   }
 
+  // Validate phone if provided
+  let normalizedPhone: string | null = null;
+  if (phone && phone.trim()) {
+    const phoneValidation = validateAndNormalizePhone(phone);
+    if (!phoneValidation.isValid) {
+      return c.json({ message: phoneValidation.error }, 400);
+    }
+    normalizedPhone = phoneValidation.normalized;
+  }
+
   const db = c.env.DB;
-  await db.prepare('UPDATE users SET name = ?, role = ?, outlet_id = ?, join_date = ? WHERE id = ?')
-    .bind(name, role, outlet_id ?? null, join_date ?? null, id)
+  await db.prepare('UPDATE users SET name = ?, role = ?, outlet_id = ?, join_date = ?, phone = ? WHERE id = ?')
+    .bind(name, role, outlet_id ?? null, join_date ?? null, normalizedPhone, id)
     .run();
 
   return c.json({ message: 'User berhasil diubah' });

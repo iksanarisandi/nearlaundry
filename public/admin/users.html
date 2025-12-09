@@ -62,8 +62,6 @@
             <label class="block text-xs font-medium text-slate-600 mb-1">Outlet</label>
             <select id="outlet_id" class="w-full rounded-lg border border-slate-200 px-3 py-2 text-sm">
               <option value="">Tanpa outlet</option>
-              <option value="1">Outlet Pusat</option>
-              <option value="2">Outlet Cabang 1</option>
             </select>
           </div>
         </div>
@@ -73,6 +71,13 @@
             <input type="date" id="join_date" class="w-full rounded-lg border border-slate-200 px-3 py-2 text-sm" />
             <p class="text-[10px] text-slate-500 mt-1">Untuk perhitungan masa kerja & tunjangan</p>
           </div>
+          <div>
+            <label class="block text-xs font-medium text-slate-600 mb-1">No. Telepon (WhatsApp)</label>
+            <input type="tel" id="phone" class="w-full rounded-lg border border-slate-200 px-3 py-2 text-sm" placeholder="08xxxxxxxxxx" />
+            <p class="text-[10px] text-slate-500 mt-1">Format: 08xxx, +62xxx, atau 62xxx</p>
+          </div>
+        </div>
+        <div class="grid grid-cols-1 md:grid-cols-2 gap-3">
           <div id="password-wrapper">
             <label class="block text-xs font-medium text-slate-600 mb-1">Kata sandi (opsional)</label>
             <input type="password" id="password" class="w-full rounded-lg border border-slate-200 px-3 py-2 text-sm" placeholder="Kosongkan untuk default" />
@@ -96,6 +101,7 @@
             <th class="py-1">Email</th>
             <th class="py-1">Role</th>
             <th class="py-1">Outlet</th>
+            <th class="py-1">Telepon</th>
             <th class="py-1">Mulai Kerja</th>
             <th class="py-1 text-right">Aksi</th>
           </tr>
@@ -116,12 +122,37 @@
     const form = document.getElementById('user-form');
     const listStatus = document.getElementById('list-status');
     const formStatus = document.getElementById('form-status');
+    
+    // Store outlets data globally
+    let outletsData = [];
+
+    // Load outlets for dropdown
+    async function loadOutlets() {
+      try {
+        const res = await fetch('/api/admin/outlets', {
+          headers: { 'Authorization': 'Bearer ' + getToken() },
+        });
+        outletsData = await res.json().catch(() => []);
+        const outletSelect = document.getElementById('outlet_id');
+        // Keep first option (Tanpa outlet)
+        outletSelect.innerHTML = '<option value="">Tanpa outlet</option>';
+        outletsData.forEach((o) => {
+          const opt = document.createElement('option');
+          opt.value = o.id;
+          opt.textContent = o.name;
+          outletSelect.appendChild(opt);
+        });
+      } catch {
+        console.error('Gagal memuat data outlet');
+      }
+    }
 
     document.getElementById('btn-new').addEventListener('click', () => {
       form.reset();
       document.getElementById('user_id').value = '';
       document.getElementById('email').disabled = false;
       document.getElementById('password').value = '';
+      document.getElementById('phone').value = '';
       document.getElementById('password-wrapper').classList.remove('hidden');
       formTitle.textContent = 'User baru';
       formCard.classList.remove('hidden');
@@ -142,16 +173,19 @@
         body.innerHTML = '';
         data.forEach((u) => {
           const tr = document.createElement('tr');
-          const outletText = u.outlet_id === null ? '-' : (u.outlet_id === 1 ? 'Outlet Pusat' : (u.outlet_id === 2 ? 'Outlet Cabang 1' : 'Outlet ' + u.outlet_id));
+          const outlet = outletsData.find(o => o.id === u.outlet_id);
+          const outletText = outlet ? outlet.name : '-';
+          const phoneText = u.phone ? u.phone : '-';
           const joinDateText = u.join_date ? u.join_date : '-';
           tr.innerHTML = `
             <td class="py-1">${u.name}</td>
             <td class="py-1">${u.email}</td>
             <td class="py-1">${u.role}</td>
             <td class="py-1">${outletText}</td>
+            <td class="py-1">${phoneText}</td>
             <td class="py-1">${joinDateText}</td>
             <td class="py-1 text-right space-x-1">
-              <button class="text-xs text-primary underline" data-action="edit" data-id="${u.id}" data-join="${u.join_date || ''}">Edit</button>
+              <button class="text-xs text-primary underline" data-action="edit" data-id="${u.id}" data-outlet="${u.outlet_id || ''}" data-phone="${u.phone || ''}" data-join="${u.join_date || ''}">Edit</button>
               <button class="text-xs text-accent underline" data-action="reset" data-id="${u.id}">Reset Sandi</button>
             </td>
           `;
@@ -179,11 +213,12 @@
         document.getElementById('email').value = tds[1].textContent || '';
         document.getElementById('email').disabled = true;
         document.getElementById('role').value = tds[2].textContent || '';
-        const outletText = tds[3].textContent || '';
-        const outletSelect = document.getElementById('outlet_id');
-        if (outletText.includes('Pusat')) outletSelect.value = '1';
-        else if (outletText.includes('Cabang 1')) outletSelect.value = '2';
-        else outletSelect.value = '';
+        // Set outlet from data attribute
+        const outletId = target.getAttribute('data-outlet') || '';
+        document.getElementById('outlet_id').value = outletId;
+        // Set phone from data attribute
+        const phone = target.getAttribute('data-phone') || '';
+        document.getElementById('phone').value = phone;
         document.getElementById('join_date').value = target.getAttribute('data-join') || '';
         document.getElementById('password-wrapper').classList.add('hidden');
         formTitle.textContent = 'Edit user';
@@ -220,6 +255,7 @@
         role: document.getElementById('role').value,
         outlet_id: document.getElementById('outlet_id').value ? Number(document.getElementById('outlet_id').value) : null,
         join_date: document.getElementById('join_date').value || null,
+        phone: document.getElementById('phone').value || null,
         password: document.getElementById('password').value || undefined,
       };
       try {
@@ -246,7 +282,8 @@
       }
     });
 
-    loadUsers();
+    // Load outlets first, then users
+    loadOutlets().then(() => loadUsers());
   </script>
 </body>
 </html>

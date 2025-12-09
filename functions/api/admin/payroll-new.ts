@@ -37,9 +37,9 @@ app.get('/', async (c) => {
   const monthNum = Number(month);
   const yearNum = Number(year);
   
-  // Get all users with their payroll data (including join_date)
+  // Get all users with their payroll data (including join_date and phone)
   let query = `
-    SELECT u.id as user_id, u.name, u.role, u.join_date,
+    SELECT u.id as user_id, u.name, u.role, u.join_date, u.phone,
            p.gaji_pokok, p.uang_makan, p.uang_transport,
            p.lembur_jam, p.lembur_jam_rate, p.lembur_libur, p.lembur_libur_rate,
            p.tunjangan_jabatan, p.thr, p.denda_terlambat, p.denda, p.kasbon, p.komisi_total
