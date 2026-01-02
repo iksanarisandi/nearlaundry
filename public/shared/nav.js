@@ -23,6 +23,34 @@ function ensureRole(expectedRoles) {
   }
 }
 
+// Global fetch interceptor for handling 401 errors
+const originalFetch = window.fetch;
+window.fetch = async function(...args) {
+  const response = await originalFetch(...args);
+  
+  // Auto logout if token is invalid or expired
+  if (response.status === 401) {
+    const clonedResponse = response.clone();
+    try {
+      const data = await clonedResponse.json();
+      // Only auto-logout if it's an auth error, not other 401s
+      if (data.message && (data.message.includes('token') || data.message.includes('Token'))) {
+        localStorage.removeItem('token');
+        localStorage.removeItem('user');
+        alert('Sesi Anda telah berakhir. Silakan login kembali.');
+        window.location.href = '/auth/login.html';
+      }
+    } catch {
+      // If can't parse JSON, still logout on 401
+      localStorage.removeItem('token');
+      localStorage.removeItem('user');
+      window.location.href = '/auth/login.html';
+    }
+  }
+  
+  return response;
+};
+
 function renderAdminNav(currentPage) {
   const menuItems = [
     { href: '/admin/dashboard.html', label: 'Dashboard', key: 'dashboard' },

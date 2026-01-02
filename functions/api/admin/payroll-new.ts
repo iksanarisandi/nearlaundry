@@ -154,18 +154,19 @@ app.get('/allowances/:user_id', async (c) => {
   // Calculate masa kerja
   const masa_kerja_bulan = calculateMasaKerja(user.join_date, monthNum, yearNum);
   
-  // Get attendance count for the period
+  // Get attendance count for the period (only active records)
   const attendanceResult = await db.prepare(`
     SELECT COUNT(DISTINCT DATE(timestamp)) as attendance_count
     FROM attendance
     WHERE user_id = ?
       AND type = 'in'
+      AND status = 'active'
       AND strftime('%Y-%m', timestamp) = ?
   `).bind(user_id, ym).first() as { attendance_count: number } | null;
   
   const attendance_count = attendanceResult?.attendance_count || 0;
   
-  // Get late count - determine shift by clock-in time
+  // Get late count - determine shift by clock-in time (only active records)
   // Shift pagi: clock-in before 12:00, should be at 07:00, late if > 07:15
   // Shift sore: clock-in at 12:00 or later, should be at 14:00, late if > 14:15
   const lateResult = await db.prepare(`
@@ -173,6 +174,7 @@ app.get('/allowances/:user_id', async (c) => {
     FROM attendance
     WHERE user_id = ?
       AND type = 'in'
+      AND status = 'active'
       AND strftime('%Y-%m', timestamp) = ?
       AND (
         (CAST(strftime('%H', timestamp) AS INTEGER) < 12 
@@ -185,7 +187,7 @@ app.get('/allowances/:user_id', async (c) => {
   
   const late_count = lateResult?.late_count || 0;
   
-  // Calculate total work hours and overtime from attendance pairs (in/out)
+  // Calculate total work hours and overtime from attendance pairs (in/out, only active records)
   const workHoursResult = await db.prepare(`
     SELECT 
       DATE(a_in.timestamp) as work_date,
@@ -196,8 +198,10 @@ app.get('/allowances/:user_id', async (c) => {
     LEFT JOIN attendance a_out ON a_in.user_id = a_out.user_id 
       AND DATE(a_in.timestamp) = DATE(a_out.timestamp)
       AND a_out.type = 'out'
+      AND a_out.status = 'active'
     WHERE a_in.user_id = ?
       AND a_in.type = 'in'
+      AND a_in.status = 'active'
       AND strftime('%Y-%m', a_in.timestamp) = ?
   `).bind(user_id, ym).all();
   

@@ -58,8 +58,8 @@
                 <th class="py-2">Staff</th>
                 <th class="py-2">Outlet</th>
                 <th class="py-2 text-right">Berat</th>
-                <th class="py-2 text-right">Qty</th>
-                <th class="py-2">Waktu</th>
+                <th class="py-2 text-right" style="min-width: 80px; padding-right: 2rem;">Qty</th>
+                <th class="py-2" style="padding-left: 1rem;">Waktu</th>
               </tr>
             </thead>
             <tbody id="results-body" class="divide-y"></tbody>
@@ -129,8 +129,8 @@
               <td class="py-2 font-semibold">${row.staff_name}</td>
               <td class="py-2">${row.outlet_name || '-'}</td>
               <td class="py-2 text-right">${row.weight ? row.weight.toFixed(1) + ' kg' : '-'}</td>
-              <td class="py-2 text-right">${row.qty}</td>
-              <td class="py-2">${formatDate(row.timestamp)}</td>
+              <td class="py-2 text-right" style="min-width: 80px; padding-right: 2rem;">${row.qty}</td>
+              <td class="py-2" style="padding-left: 1rem;">${formatDate(row.timestamp)}</td>
             `;
             resultsBody.appendChild(tr);
           });

@@ -11,7 +11,7 @@ export type UserToken = {
 export const authMiddleware = async (c: Context<{ Bindings: Env; Variables: { user: UserToken } }>, next: Next) => {
   const auth = c.req.header('Authorization');
   if (!auth || !auth.startsWith('Bearer ')) {
-    return c.json({ message: 'Tidak ada token' }, 401);
+    return c.json({ message: 'Token tidak ditemukan' }, 401);
   }
 
   const token = auth.slice(7);
@@ -20,7 +20,11 @@ export const authMiddleware = async (c: Context<{ Bindings: Env; Variables: { us
     const payload = jwt.verify(token, c.env.JWT_SECRET, { algorithms: ['HS256'] }) as unknown as UserToken;
     c.set('user', payload);
     await next();
-  } catch {
+  } catch (err: any) {
+    // Provide specific error messages
+    if (err.name === 'TokenExpiredError') {
+      return c.json({ message: 'Token telah kadaluarsa. Silakan login kembali.' }, 401);
+    }
     return c.json({ message: 'Token tidak valid' }, 401);
   }
 };

@@ -26,7 +26,11 @@ app.post('/', async (c) => {
     outlet_id: (user as any).outlet_id,
   };
 
-  const token = jwt.sign(payload, c.env.JWT_SECRET, { algorithm: 'HS256' });
+  // Token expires in 7 days for security
+  const token = jwt.sign(payload, c.env.JWT_SECRET, { 
+    algorithm: 'HS256',
+    expiresIn: '7d'
+  });
 
   return c.json({
     token,
