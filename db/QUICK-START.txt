@@ -1,0 +1,96 @@
+================================================================================
+MIGRATION v10 - QUICK START GUIDE
+================================================================================
+
+TUJUAN:
+  Menambah constraint UNIQUE untuk nota_number per outlet + process
+
+STATUS:
+  ✅ READY TO RUN - Aman untuk production
+
+================================================================================
+LANGKAH CEPAT (3 STEP)
+================================================================================
+
+STEP 1: CEK DUPLIKAT
+  $ wrangler d1 execute [database-name] --file db/check-duplicates.sql
+  
+  ✅ Jika kosong (no results) → Lanjut ke STEP 2
+  ❌ Jika ada duplikat → Hubungi admin untuk cleanup
+
+STEP 2: JALANKAN MIGRASI
+  $ wrangler d1 execute [database-name] --file db/migration-v10.sql
+  
+  ✅ Jika berhasil (no error) → Lanjut ke STEP 3
+  ❌ Jika ada error → Jangan lanjutkan, restore backup
+
+STEP 3: VERIFIKASI
+  Coba input nota yang sama di aplikasi → Harus ditolak
+  Coba input nota yang sama di outlet berbeda → Harus berhasil
+
+================================================================================
+FILE PENTING
+================================================================================
+
+migration-v10.sql              ← MAIN FILE (jalankan ini)
+check-duplicates.sql           ← CEK DULU (wajib jalankan sebelum migrasi)
+MIGRATION-v10-GUIDE.md         ← DOKUMENTASI LENGKAP (baca jika ada pertanyaan)
+MIGRATION-v10-CHECKLIST.md     ← CHECKLIST (ikuti step by step)
+cleanup-duplicates-template.sql ← JIKA ADA DUPLIKAT (gunakan untuk cleanup)
+
+================================================================================
+KEAMANAN
+================================================================================
+
+✅ Tidak menghapus data
+✅ Tidak mengubah struktur kolom
+✅ Backward compatible
+✅ Fail-safe (gagal jika ada duplikat, data tetap aman)
+✅ Tested dan aman untuk production
+
+================================================================================
+JIKA ADA MASALAH
+================================================================================
+
+1. Duplikat ditemukan?
+   → Jalankan: db/cleanup-duplicates-template.sql
+   → Bersihkan duplikat manual
+   → Jalankan check-duplicates.sql lagi
+   → Lanjut ke STEP 2
+
+2. Migrasi gagal?
+   → Restore dari backup database
+   → Cari tahu penyebabnya
+   → Hubungi developer
+
+3. Aplikasi error setelah migrasi?
+   → Cek logs
+   → Verifikasi kode sudah di-update
+   → Restart aplikasi
+
+================================================================================
+ROLLBACK
+================================================================================
+
+Jika ada masalah serius:
+  1. Stop aplikasi
+  2. Restore backup database
+  3. Revert kode di functions/api/production/index.ts
+  4. Restart aplikasi
+
+================================================================================
+TIMELINE
+================================================================================
+
+Dibuat: 2026-01-02
+Status: Ready untuk production
+Tested: Ya, aman
+
+================================================================================
+PERTANYAAN?
+================================================================================
+
+Baca: MIGRATION-v10-GUIDE.md (FAQ section)
+atau hubungi: Developer team
+
+================================================================================

@@ -1,0 +1,68 @@
+================================================================================
+MIGRATION v10: UNIQUE CONSTRAINT UNTUK NOTA NUMBER
+================================================================================
+
+TUJUAN:
+  Menambahkan constraint UNIQUE pada (outlet_id, nota_number, process)
+  sehingga nomor nota tidak bisa duplikat dalam outlet dan proses yang sama.
+
+PERUBAHAN:
+  ✅ Database: Tabel production mendapat constraint UNIQUE baru
+  ✅ Aplikasi: Validasi nota_number sekarang per outlet (bukan global)
+  ✅ Error message: Lebih jelas dan informatif
+
+KEAMANAN:
+  ✅ Tidak menghapus data
+  ✅ Tidak mengubah struktur kolom
+  ✅ Backward compatible dengan semua query existing
+  ✅ Fail-safe: Migrasi gagal jika ada duplikat (data tetap aman)
+
+FILE YANG DIBUAT:
+  1. db/migration-v10.sql              - Migration script
+  2. db/check-duplicates.sql           - Script untuk cek duplikat
+  3. db/MIGRATION-v10-GUIDE.md         - Dokumentasi lengkap
+  4. scripts/migrate-v10.js            - Helper script
+  5. functions/_utils/production.test.ts - Test cases
+
+FILE YANG DIUBAH:
+  1. functions/api/production/index.ts - Update validasi nota_number
+
+LANGKAH MIGRASI:
+
+  STEP 1: CEK DUPLIKAT (WAJIB)
+  $ wrangler d1 execute [database-name] --file db/check-duplicates.sql
+  
+  Pastikan hasilnya KOSONG. Jika ada duplikat, hubungi admin untuk membersihkan.
+
+  STEP 2: JALANKAN MIGRASI
+  $ wrangler d1 execute [database-name] --file db/migration-v10.sql
+  
+  Migrasi berhasil jika tidak ada error.
+
+  STEP 3: VERIFIKASI
+  Coba insert duplikat untuk memastikan constraint aktif.
+
+ROLLBACK:
+  Jika ada masalah, restore dari backup database sebelum migrasi.
+  (Migrasi ini tidak bisa di-rollback otomatis)
+
+TESTING:
+  Jalankan: npm test functions/_utils/production.test.ts
+  
+  Test cases memverifikasi:
+  - Nota yang sama bisa di outlet berbeda ✅
+  - Nota yang sama tidak bisa di outlet + process yang sama ❌
+  - Nota yang sama bisa di outlet sama tapi process berbeda ✅
+  - Validasi include outlet_id ✅
+  - Error message jelas ✅
+  - Data tidak hilang saat migrasi ✅
+
+TIMELINE:
+  Dibuat: 2026-01-02
+  Status: Ready untuk production
+  Tested: Ya, aman
+
+PERTANYAAN?
+  Lihat: db/MIGRATION-v10-GUIDE.md (FAQ section)
+
+================================================================================

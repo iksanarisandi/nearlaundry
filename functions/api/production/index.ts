@@ -38,13 +38,13 @@ app.post('/', async (c) => {
     return c.json({ message: 'Harga jasa wajib diisi untuk cuci satuan' }, 400);
   }
 
-  // Check if nota_number + process combination already exists (unique validation)
+  // Check if nota_number + process combination already exists in same outlet (unique validation)
   const existing = await c.env.DB.prepare(
-    'SELECT id FROM production WHERE nota_number = ? AND process = ?'
-  ).bind(nota_number.trim(), process).first();
+    'SELECT id FROM production WHERE outlet_id = ? AND nota_number = ? AND process = ?'
+  ).bind(user.outlet_id, nota_number.trim(), process).first();
 
   if (existing) {
-    return c.json({ message: `Nota ${nota_number} sudah diinput untuk proses ${process}` }, 400);
+    return c.json({ message: `Nota ${nota_number} sudah diinput untuk proses ${process} di outlet ini` }, 400);
   }
 
   await c.env.DB.prepare(
