@@ -34,6 +34,24 @@ app.post('/', async (c) => {
 
   const db = c.env.DB;
 
+  // Check if user already has attendance of this type today
+  const today = new Date().toISOString().split('T')[0]; // YYYY-MM-DD
+  const existingAttendance = await db.prepare(
+    `SELECT id FROM attendance 
+     WHERE user_id = ? 
+     AND type = ? 
+     AND date(timestamp) = date(?)
+     AND status = 'active'
+     LIMIT 1`
+  ).bind(user.sub, type, today).first();
+
+  if (existingAttendance) {
+    const typeText = type === 'in' ? 'masuk' : 'pulang';
+    return c.json({ 
+      message: `Anda sudah absen ${typeText} hari ini` 
+    }, 400);
+  }
+
   // Get outlet coordinates for the user
   const outlet = await db.prepare(
     'SELECT o.latitude, o.longitude, o.name FROM outlets o JOIN users u ON u.outlet_id = o.id WHERE u.id = ?'
