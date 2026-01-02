@@ -4,7 +4,7 @@ import { authMiddleware, requireRole } from '../../_utils/auth';
 
 const app = new Hono<{ Bindings: Env; Variables: { user: any } }>();
 
-const ATTENDANCE_RADIUS_METERS = 200;
+const ATTENDANCE_RADIUS_METERS = 500;
 
 // Calculate distance between two GPS coordinates using Haversine formula
 function calculateDistance(lat1: number, lng1: number, lat2: number, lng2: number): number {

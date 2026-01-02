@@ -35,14 +35,14 @@ app.get('/', async (c) => {
     FROM attendance a
     JOIN users u ON a.user_id = u.id
     LEFT JOIN users admin ON a.annulled_by = admin.id
-    WHERE substr(a.timestamp, 1, 10) = ?
+    WHERE DATE(a.timestamp) = ?
   `;
 
   if (!showAnnulled) {
     query += ` AND (a.status = 'active' OR a.status IS NULL)`;
   }
 
-  query += ` ORDER BY u.name, a.timestamp`;
+  query += ` ORDER BY u.name, a.type, a.timestamp`;
 
   const rows = await db.prepare(query).bind(date).all();
 
