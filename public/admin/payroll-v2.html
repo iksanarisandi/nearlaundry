@@ -8,6 +8,7 @@
   <title>Payroll - NearMe Laundry</title>
   <link rel="stylesheet" href="/styles.css" />
   <script src="/shared/nav.js" defer></script>
+  <script src="/shared/currency.js" defer></script>
   <script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js"></script>
   <script src="https://cdnjs.cloudflare.com/ajax/libs/html2canvas/1.4.1/html2canvas.min.js"></script>
 </head>
@@ -111,12 +112,12 @@
         
         <div>
           <label class="block text-xs text-slate-600 mb-1">Gaji Pokok</label>
-          <input type="number" id="gaji_pokok" class="w-full rounded border px-2 py-1 text-sm" />
+          <input type="text" inputmode="numeric" data-currency id="gaji_pokok" class="w-full rounded border px-2 py-1 text-sm" />
         </div>
         <div>
           <label class="block text-xs text-slate-600 mb-1">Uang Makan</label>
           <div class="flex gap-1">
-            <input type="number" id="uang_makan" class="flex-1 rounded border px-2 py-1 text-sm" />
+            <input type="text" inputmode="numeric" data-currency id="uang_makan" class="flex-1 rounded border px-2 py-1 text-sm" />
             <button type="button" onclick="calcAllowances()" class="text-[10px] bg-accent text-white px-2 rounded">Auto</button>
           </div>
           <p id="uangmakan-info" class="text-[10px] text-slate-500 mt-1"></p>
@@ -124,7 +125,7 @@
         <div>
           <label class="block text-xs text-slate-600 mb-1">Uang Transport</label>
           <div class="flex gap-1">
-            <input type="number" id="uang_transport" class="flex-1 rounded border px-2 py-1 text-sm" />
+            <input type="text" inputmode="numeric" data-currency id="uang_transport" class="flex-1 rounded border px-2 py-1 text-sm" />
             <button type="button" onclick="calcAllowances()" class="text-[10px] bg-accent text-white px-2 rounded">Auto</button>
           </div>
           <p id="transport-info" class="text-[10px] text-slate-500 mt-1"></p>
@@ -139,7 +140,7 @@
         </div>
         <div>
           <label class="block text-xs text-slate-600 mb-1">Rate/Jam (Rp)</label>
-          <input type="number" id="lembur_jam_rate" value="7000" class="w-full rounded border px-2 py-1 text-sm" />
+          <input type="text" inputmode="numeric" data-currency id="lembur_jam_rate" class="w-full rounded border px-2 py-1 text-sm" />
         </div>
         <div>
           <label class="block text-xs text-slate-600 mb-1">Lembur Libur (jumlah shift)</label>
@@ -147,36 +148,36 @@
         </div>
         <div>
           <label class="block text-xs text-slate-600 mb-1">Rate/Shift (Rp)</label>
-          <input type="number" id="lembur_libur_rate" value="35000" class="w-full rounded border px-2 py-1 text-sm" />
+          <input type="text" inputmode="numeric" data-currency id="lembur_libur_rate" class="w-full rounded border px-2 py-1 text-sm" />
         </div>
         <div>
           <label class="block text-xs text-slate-600 mb-1">Tunjangan Jabatan</label>
           <div class="flex gap-1">
-            <input type="number" id="tunjangan_jabatan" class="flex-1 rounded border px-2 py-1 text-sm" />
+            <input type="text" inputmode="numeric" data-currency id="tunjangan_jabatan" class="flex-1 rounded border px-2 py-1 text-sm" />
             <button type="button" onclick="calcAllowances()" class="text-[10px] bg-accent text-white px-2 rounded">Auto</button>
           </div>
           <p id="tunjangan-info" class="text-[10px] text-slate-500 mt-1"></p>
         </div>
         <div>
           <label class="block text-xs text-slate-600 mb-1">THR</label>
-          <input type="number" id="thr" class="w-full rounded border px-2 py-1 text-sm" />
+          <input type="text" inputmode="numeric" data-currency id="thr" class="w-full rounded border px-2 py-1 text-sm" />
         </div>
         <div>
           <label class="block text-xs text-slate-600 mb-1">Denda Keterlambatan</label>
-          <input type="number" id="denda_terlambat" class="w-full rounded border px-2 py-1 text-sm bg-slate-100" readonly />
+          <input type="text" inputmode="numeric" data-currency id="denda_terlambat" class="w-full rounded border px-2 py-1 text-sm bg-slate-100" readonly />
           <p id="denda-info" class="text-[10px] text-slate-500 mt-1"></p>
         </div>
         <div>
           <label class="block text-xs text-slate-600 mb-1">Denda Lainnya</label>
-          <input type="number" id="denda" class="w-full rounded border px-2 py-1 text-sm" />
+          <input type="text" inputmode="numeric" data-currency id="denda" class="w-full rounded border px-2 py-1 text-sm" />
         </div>
         <div>
           <label class="block text-xs text-slate-600 mb-1">Kasbon</label>
-          <input type="number" id="kasbon" class="w-full rounded border px-2 py-1 text-sm" />
+          <input type="text" inputmode="numeric" data-currency id="kasbon" class="w-full rounded border px-2 py-1 text-sm" />
         </div>
         <div>
           <label class="block text-xs text-slate-600 mb-1">Komisi Total</label>
-          <input type="number" id="komisi_total" class="w-full rounded border px-2 py-1 text-sm bg-slate-100" readonly />
+          <input type="text" inputmode="numeric" data-currency id="komisi_total" class="w-full rounded border px-2 py-1 text-sm bg-slate-100" readonly />
           <button type="button" onclick="calcCommission()" class="text-[10px] text-accent underline mt-1">Hitung dari produksi</button>
         </div>
         
@@ -363,19 +364,24 @@
       document.getElementById('edit-form').classList.remove('hidden');
       document.getElementById('edit-name').textContent = p.name;
       document.getElementById('edit_user_id').value = p.user_id;
-      document.getElementById('gaji_pokok').value = p.gaji_pokok || 0;
-      document.getElementById('uang_makan').value = p.uang_makan || 0;
-      document.getElementById('uang_transport').value = p.uang_transport || 0;
+      document.getElementById('gaji_pokok').value = NearMeCurrency.formatCurrency(p.gaji_pokok || 0);
+      document.getElementById('uang_makan').value = NearMeCurrency.formatCurrency(p.uang_makan || 0);
+      document.getElementById('uang_transport').value = NearMeCurrency.formatCurrency(p.uang_transport || 0);
       document.getElementById('lembur_jam').value = p.lembur_jam || 0;
-      document.getElementById('lembur_jam_rate').value = p.lembur_jam_rate || 7000;
+      document.getElementById('lembur_jam_rate').value = NearMeCurrency.formatCurrency(p.lembur_jam_rate || 7000);
       document.getElementById('lembur_libur').value = p.lembur_libur || 0;
-      document.getElementById('lembur_libur_rate').value = p.lembur_libur_rate || 35000;
-      document.getElementById('tunjangan_jabatan').value = p.tunjangan_jabatan || 0;
-      document.getElementById('thr').value = p.thr || 0;
-      document.getElementById('denda_terlambat').value = p.denda_terlambat || 0;
-      document.getElementById('denda').value = p.denda || 0;
-      document.getElementById('kasbon').value = p.kasbon || 0;
-      document.getElementById('komisi_total').value = p.komisi_total || 0;
+      document.getElementById('lembur_libur_rate').value = NearMeCurrency.formatCurrency(p.lembur_libur_rate || 35000);
+      document.getElementById('tunjangan_jabatan').value = NearMeCurrency.formatCurrency(p.tunjangan_jabatan || 0);
+      document.getElementById('thr').value = NearMeCurrency.formatCurrency(p.thr || 0);
+      document.getElementById('denda_terlambat').value = NearMeCurrency.formatCurrency(p.denda_terlambat || 0);
+      document.getElementById('denda').value = NearMeCurrency.formatCurrency(p.denda || 0);
+      document.getElementById('kasbon').value = NearMeCurrency.formatCurrency(p.kasbon || 0);
+      document.getElementById('komisi_total').value = NearMeCurrency.formatCurrency(p.komisi_total || 0);
+      
+      // Attach currency formatter to all currency inputs in the form
+      document.querySelectorAll('#payroll-form input[data-currency]').forEach(input => {
+        NearMeCurrency.attachToInput(input);
+      });
       
       // Clear info texts
       document.getElementById('tunjangan-info').textContent = '';
@@ -411,11 +417,11 @@
         }
         
         // Populate fields
-        document.getElementById('tunjangan_jabatan').value = data.tunjangan_jabatan || 0;
-        document.getElementById('uang_makan').value = data.uang_makan_total || 0;
-        document.getElementById('uang_transport').value = data.uang_transport_total || 0;
+        document.getElementById('tunjangan_jabatan').value = NearMeCurrency.formatCurrency(data.tunjangan_jabatan || 0);
+        document.getElementById('uang_makan').value = NearMeCurrency.formatCurrency(data.uang_makan_total || 0);
+        document.getElementById('uang_transport').value = NearMeCurrency.formatCurrency(data.uang_transport_total || 0);
         document.getElementById('lembur_jam').value = data.lembur_jam || 0;
-        document.getElementById('denda_terlambat').value = data.denda_total || 0;
+        document.getElementById('denda_terlambat').value = NearMeCurrency.formatCurrency(data.denda_total || 0);
         
         // Show formula info
         document.getElementById('tunjangan-info').textContent = 
@@ -446,7 +452,7 @@
         headers: { 'Authorization': 'Bearer ' + getToken() }
       });
       const data = await res.json();
-      document.getElementById('komisi_total').value = data.total_komisi || 0;
+      document.getElementById('komisi_total').value = NearMeCurrency.formatCurrency(data.total_komisi || 0);
       document.getElementById('form-status').textContent = 'Komisi dihitung: ' + formatRupiah(data.total_komisi);
     }
 
@@ -458,19 +464,19 @@
         user_id: Number(document.getElementById('edit_user_id').value),
         month: Number(document.getElementById('month').value),
         year: Number(document.getElementById('year').value),
-        gaji_pokok: Number(document.getElementById('gaji_pokok').value) || 0,
-        uang_makan: Number(document.getElementById('uang_makan').value) || 0,
-        uang_transport: Number(document.getElementById('uang_transport').value) || 0,
+        gaji_pokok: NearMeCurrency.parseCurrency(document.getElementById('gaji_pokok').value),
+        uang_makan: NearMeCurrency.parseCurrency(document.getElementById('uang_makan').value),
+        uang_transport: NearMeCurrency.parseCurrency(document.getElementById('uang_transport').value),
         lembur_jam: Number(document.getElementById('lembur_jam').value) || 0,
-        lembur_jam_rate: Number(document.getElementById('lembur_jam_rate').value) || 7000,
+        lembur_jam_rate: NearMeCurrency.parseCurrency(document.getElementById('lembur_jam_rate').value) || 7000,
         lembur_libur: Number(document.getElementById('lembur_libur').value) || 0,
-        lembur_libur_rate: Number(document.getElementById('lembur_libur_rate').value) || 35000,
-        tunjangan_jabatan: Number(document.getElementById('tunjangan_jabatan').value) || 0,
-        thr: Number(document.getElementById('thr').value) || 0,
-        denda_terlambat: Number(document.getElementById('denda_terlambat').value) || 0,
-        denda: Number(document.getElementById('denda').value) || 0,
-        kasbon: Number(document.getElementById('kasbon').value) || 0,
-        komisi_total: Number(document.getElementById('komisi_total').value) || 0
+        lembur_libur_rate: NearMeCurrency.parseCurrency(document.getElementById('lembur_libur_rate').value) || 35000,
+        tunjangan_jabatan: NearMeCurrency.parseCurrency(document.getElementById('tunjangan_jabatan').value),
+        thr: NearMeCurrency.parseCurrency(document.getElementById('thr').value),
+        denda_terlambat: NearMeCurrency.parseCurrency(document.getElementById('denda_terlambat').value),
+        denda: NearMeCurrency.parseCurrency(document.getElementById('denda').value),
+        kasbon: NearMeCurrency.parseCurrency(document.getElementById('kasbon').value),
+        komisi_total: NearMeCurrency.parseCurrency(document.getElementById('komisi_total').value)
       };
       
       const res = await fetch('/api/payroll-v2', {

@@ -7,6 +7,7 @@
   <title>Pengeluaran Harian - NearMe Laundry</title>
   <link rel="stylesheet" href="/styles.css" />
   <script src="/shared/nav.js" defer></script>
+  <script src="/shared/currency.js" defer></script>
 </head>
 <body class="min-h-full flex flex-col bg-slate-100" onload="NearMeNav.ensureRole(['produksi'])">
   <main class="flex-1 mx-auto w-full max-w-md px-4 py-4 pb-20">
@@ -43,7 +44,7 @@
 
         <div>
           <label class="block text-xs font-medium text-slate-600 mb-1">Nominal (Rp) *</label>
-          <input type="number" id="amount" min="1" class="w-full rounded-lg border border-slate-200 px-3 py-2 text-sm" required />
+          <input type="text" inputmode="numeric" id="amount" data-currency class="w-full rounded-lg border border-slate-200 px-3 py-2 text-sm" required />
         </div>
         <p id="status" class="text-xs text-slate-600"></p>
         <button type="submit" class="btn-primary mt-2">Simpan</button>
@@ -122,14 +123,16 @@
       const selected = subcategorySelect.options[subcategorySelect.selectedIndex];
       const price = parseInt(selected.dataset.price) || 0;
       const qty = parseInt(bhpQtyInput.value) || 1;
-      amountInput.value = price * qty;
+      const total = price * qty;
+      amountInput.value = total > 0 ? NearMeCurrency.formatCurrency(total) : '';
     });
 
     bhpQtyInput.addEventListener('input', () => {
       const selected = subcategorySelect.options[subcategorySelect.selectedIndex];
       const price = parseInt(selected.dataset.price) || 0;
       const qty = parseInt(bhpQtyInput.value) || 1;
-      amountInput.value = price * qty;
+      const total = price * qty;
+      amountInput.value = total > 0 ? NearMeCurrency.formatCurrency(total) : '';
     });
 
     categorySelect.addEventListener('change', () => {
@@ -186,7 +189,7 @@
 
       const payload = {
         category: finalCategory,
-        amount: Number(document.getElementById('amount').value),
+        amount: NearMeCurrency.parseCurrency(document.getElementById('amount').value),
       };
 
       try {

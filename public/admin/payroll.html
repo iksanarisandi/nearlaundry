@@ -8,6 +8,7 @@
   <title>Payroll - NearMe Laundry</title>
   <link rel="stylesheet" href="/styles.css" />
   <script src="/shared/nav.js" defer></script>
+  <script src="/shared/currency.js" defer></script>
 </head>
 <body class="min-h-full flex flex-col bg-slate-100" onload="NearMeNav.ensureRole(['admin'])">
   <header class="bg-white shadow-sm">
@@ -90,12 +91,14 @@
           tr.innerHTML = `
             <td class="py-1">${row.name}</td>
             <td class="py-1">${row.role}</td>
-            <td class="py-1 text-right"><input type="number" data-field="base" data-user="${row.user_id}" value="${row.base_salary || 0}" class="w-24 text-right rounded border border-slate-200 px-1 py-0.5" /></td>
-            <td class="py-1 text-right"><input type="number" data-field="adj" data-user="${row.user_id}" value="${row.adjustment || 0}" class="w-24 text-right rounded border border-slate-200 px-1 py-0.5" /></td>
+            <td class="py-1 text-right"><input type="text" inputmode="numeric" data-currency data-field="base" data-user="${row.user_id}" value="${NearMeCurrency.formatCurrency(row.base_salary || 0)}" class="w-28 text-right rounded border border-slate-200 px-1 py-0.5" /></td>
+            <td class="py-1 text-right"><input type="text" inputmode="numeric" data-currency data-field="adj" data-user="${row.user_id}" value="${NearMeCurrency.formatCurrency(row.adjustment || 0)}" class="w-28 text-right rounded border border-slate-200 px-1 py-0.5" /></td>
             <td class="py-1 text-right">${formatRupiah(Number(row.total_salary || 0))}</td>
             <td class="py-1 text-right"><button class="text-xs text-primary underline" data-action="save" data-user="${row.user_id}">Simpan</button></td>
           `;
           body.appendChild(tr);
+          // Attach currency formatter to new inputs
+          tr.querySelectorAll('input[data-currency]').forEach(input => NearMeCurrency.attachToInput(input));
         });
         statusEl.textContent = data.length ? '' : 'Belum ada data payroll untuk bulan ini.';
       } catch {
@@ -131,8 +134,8 @@
         user_id: userId,
         month,
         year,
-        base_salary: Number(baseInput.value || 0),
-        adjustment: Number(adjInput.value || 0),
+        base_salary: NearMeCurrency.parseCurrency(baseInput.value || '0'),
+        adjustment: NearMeCurrency.parseCurrency(adjInput.value || '0'),
       };
       const statusEl = document.getElementById('status');
       statusEl.textContent = 'Menyimpan payroll...';

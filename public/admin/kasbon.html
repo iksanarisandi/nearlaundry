@@ -8,6 +8,7 @@
   <title>Kasbon - NearMe Laundry</title>
   <link rel="stylesheet" href="/styles.css" />
   <script src="/shared/nav.js" defer></script>
+  <script src="/shared/currency.js" defer></script>
 </head>
 <body class="min-h-full flex flex-col bg-slate-100" onload="NearMeNav.ensureRole(['admin'])">
   <header class="bg-white shadow-sm">
@@ -46,7 +47,7 @@
         </div>
         <div>
           <label class="block text-xs text-slate-600 mb-1">Nominal (Rp)</label>
-          <input type="number" id="amount" min="1" class="w-full rounded border px-2 py-1 text-sm" required />
+          <input type="text" inputmode="numeric" id="amount" data-currency class="w-full rounded border px-2 py-1 text-sm" required />
         </div>
         <div>
           <label class="block text-xs text-slate-600 mb-1">Keterangan</label>
@@ -160,7 +161,7 @@
       
       const payload = {
         user_id: Number(document.getElementById('user_id').value),
-        amount: Number(document.getElementById('amount').value),
+        amount: NearMeCurrency.parseCurrency(document.getElementById('amount').value),
         note: document.getElementById('note').value,
         date: document.getElementById('kasbon_date').value || null
       };

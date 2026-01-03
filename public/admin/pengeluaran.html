@@ -8,6 +8,7 @@
   <title>Pengeluaran - NearMe Laundry</title>
   <link rel="stylesheet" href="/styles.css" />
   <script src="/shared/nav.js" defer></script>
+  <script src="/shared/currency.js" defer></script>
 </head>
 <body class="min-h-full flex flex-col bg-slate-100" onload="NearMeNav.ensureRole(['admin'])">
   <header class="bg-white shadow-sm">
@@ -65,7 +66,7 @@
         </div>
         <div>
           <label class="block text-xs text-slate-600 mb-1">Nominal (Rp) *</label>
-          <input type="number" id="amount" min="1" class="w-full rounded border px-2 py-1 text-sm" required />
+          <input type="text" inputmode="numeric" id="amount" data-currency class="w-full rounded border px-2 py-1 text-sm" required />
         </div>
         <div>
           <label class="block text-xs text-slate-600 mb-1">Tanggal</label>
@@ -133,7 +134,7 @@
           </div>
           <div>
             <label class="block text-xs text-slate-600 mb-1">Nominal (Rp) *</label>
-            <input type="number" id="edit-amount" min="1" class="w-full rounded border px-2 py-1 text-sm" required />
+            <input type="text" inputmode="numeric" id="edit-amount" data-currency class="w-full rounded border px-2 py-1 text-sm" required />
           </div>
           <div class="flex gap-2">
             <button type="submit" class="btn-primary flex-1">Simpan</button>
@@ -252,14 +253,16 @@
       const selected = subcategorySelect.options[subcategorySelect.selectedIndex];
       const price = parseInt(selected.dataset.price) || 0;
       const qty = parseInt(bhpQtyInput.value) || 1;
-      amountInput.value = price * qty;
+      const total = price * qty;
+      amountInput.value = total > 0 ? NearMeCurrency.formatCurrency(total) : '';
     });
 
     bhpQtyInput.addEventListener('input', () => {
       const selected = subcategorySelect.options[subcategorySelect.selectedIndex];
       const price = parseInt(selected.dataset.price) || 0;
       const qty = parseInt(bhpQtyInput.value) || 1;
-      amountInput.value = price * qty;
+      const total = price * qty;
+      amountInput.value = total > 0 ? NearMeCurrency.formatCurrency(total) : '';
     });
 
     // Load expenses
@@ -327,7 +330,7 @@
       const payload = {
         outlet_id: Number(document.getElementById('outlet_id').value),
         category: finalCategory,
-        amount: Number(amountInput.value),
+        amount: NearMeCurrency.parseCurrency(amountInput.value),
         date: document.getElementById('expense_date').value || null
       };
 
@@ -353,7 +356,10 @@
     function openEditModal(id, category, amount) {
       document.getElementById('edit-id').value = id;
       document.getElementById('edit-category').value = category;
-      document.getElementById('edit-amount').value = amount;
+      const editAmountInput = document.getElementById('edit-amount');
+      editAmountInput.value = NearMeCurrency.formatCurrency(amount);
+      // Re-attach currency formatter to edit-amount if not already attached
+      NearMeCurrency.attachToInput(editAmountInput);
       document.getElementById('edit-status').textContent = '';
       document.getElementById('edit-modal').style.display = 'block';
     }
@@ -370,7 +376,7 @@
       const id = document.getElementById('edit-id').value;
       const payload = {
         category: document.getElementById('edit-category').value,
-        amount: Number(document.getElementById('edit-amount').value)
+        amount: NearMeCurrency.parseCurrency(document.getElementById('edit-amount').value)
       };
 
       const res = await fetch(`/api/admin/expenses/${id}`, {
