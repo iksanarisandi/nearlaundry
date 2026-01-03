@@ -27,7 +27,7 @@ app.get('/', async (c) => {
   ).bind(ym).all();
 
   const expensesSummary = await db.prepare(
-    "SELECT category, SUM(amount) as total FROM expenses WHERE substr(timestamp, 1, 7) = ? GROUP BY category"
+    "SELECT category, SUM(amount) as total FROM expenses WHERE strftime('%Y-%m', datetime(timestamp, '+7 hours')) = ? GROUP BY category"
   ).bind(ym).all();
 
   // Expenses per outlet (GAS, BHP, DLL)
@@ -39,7 +39,7 @@ app.get('/', async (c) => {
       COALESCE(SUM(CASE WHEN e.category LIKE 'BHP%' THEN e.amount ELSE 0 END), 0) as bhp_total,
       COALESCE(SUM(CASE WHEN e.category LIKE 'DLL%' THEN e.amount ELSE 0 END), 0) as dll_total
     FROM outlets o
-    LEFT JOIN expenses e ON e.outlet_id = o.id AND substr(e.timestamp, 1, 7) = ?
+    LEFT JOIN expenses e ON e.outlet_id = o.id AND strftime('%Y-%m', datetime(e.timestamp, '+7 hours')) = ?
     GROUP BY o.id
   `).bind(ym).all();
 
@@ -98,17 +98,17 @@ app.get('/', async (c) => {
 
   // Production summary per process
   const productionByProcess = await db.prepare(
-    "SELECT process, SUM(weight) as total_kg, SUM(qty) as total_qty, COUNT(*) as total_transaksi FROM production WHERE substr(timestamp, 1, 7) = ? GROUP BY process"
+    "SELECT process, SUM(weight) as total_kg, SUM(qty) as total_qty, COUNT(*) as total_transaksi FROM production WHERE strftime('%Y-%m', datetime(timestamp, '+7 hours')) = ? GROUP BY process"
   ).bind(ym).all();
 
   // Production per staff
   const productionByStaff = await db.prepare(
-    "SELECT u.name as staff, SUM(p.weight) as total_kg, SUM(p.qty) as total_qty, COUNT(*) as total_transaksi FROM production p JOIN users u ON p.user_id = u.id WHERE substr(p.timestamp, 1, 7) = ? GROUP BY p.user_id ORDER BY total_kg DESC"
+    "SELECT u.name as staff, SUM(p.weight) as total_kg, SUM(p.qty) as total_qty, COUNT(*) as total_transaksi FROM production p JOIN users u ON p.user_id = u.id WHERE strftime('%Y-%m', datetime(p.timestamp, '+7 hours')) = ? GROUP BY p.user_id ORDER BY total_kg DESC"
   ).bind(ym).all();
 
   // Delivery summary (antar/jemput)
   const deliverySummary = await db.prepare(
-    "SELECT type, COUNT(*) as total, SUM(CASE WHEN status = 'berhasil' THEN 1 ELSE 0 END) as berhasil, SUM(CASE WHEN status = 'gagal' THEN 1 ELSE 0 END) as gagal FROM deliveries WHERE substr(timestamp, 1, 7) = ? GROUP BY type"
+    "SELECT type, COUNT(*) as total, SUM(CASE WHEN status = 'berhasil' THEN 1 ELSE 0 END) as berhasil, SUM(CASE WHEN status = 'gagal' THEN 1 ELSE 0 END) as gagal FROM deliveries WHERE strftime('%Y-%m', datetime(timestamp, '+7 hours')) = ? GROUP BY type"
   ).bind(ym).all();
 
   return c.json({

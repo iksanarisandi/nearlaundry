@@ -102,7 +102,9 @@
     function formatRupiah(v) { return 'Rp ' + (v || 0).toLocaleString('id-ID'); }
     function formatDate(ts) {
       if (!ts) return '-';
-      return new Date(ts).toLocaleDateString('id-ID');
+      // Ensure timestamp has Z suffix for proper UTC parsing
+      const tsWithZ = ts.endsWith('Z') ? ts : ts + 'Z';
+      return new Date(tsWithZ).toLocaleDateString('id-ID', { timeZone: 'Asia/Jakarta' });
     }
 
     const today = new Date();

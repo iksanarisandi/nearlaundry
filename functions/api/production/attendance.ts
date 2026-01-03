@@ -1,6 +1,7 @@
 import { Hono } from 'hono';
 import type { Env } from '../../index';
 import { authMiddleware, requireRole } from '../../_utils/auth';
+import { getTodayWib, getWibDateBoundaries } from '../../_utils/timezone';
 
 const app = new Hono<{ Bindings: Env; Variables: { user: any } }>();
 
@@ -34,16 +35,19 @@ app.post('/', async (c) => {
 
   const db = c.env.DB;
 
-  // Check if user already has attendance of this type today
-  const today = new Date().toISOString().split('T')[0]; // YYYY-MM-DD
+  // Check if user already has attendance of this type today (using WIB timezone)
+  const todayWib = getTodayWib();
+  const boundaries = getWibDateBoundaries(todayWib);
+  
   const existingAttendance = await db.prepare(
     `SELECT id FROM attendance 
      WHERE user_id = ? 
      AND type = ? 
-     AND date(timestamp) = date(?)
+     AND timestamp >= ? 
+     AND timestamp <= ?
      AND status = 'active'
      LIMIT 1`
-  ).bind(user.sub, type, today).first();
+  ).bind(user.sub, type, boundaries.startUtc, boundaries.endUtc).first();
 
   if (existingAttendance) {
     const typeText = type === 'in' ? 'masuk' : 'pulang';

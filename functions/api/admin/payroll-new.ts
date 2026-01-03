@@ -20,6 +20,7 @@ import {
   LEMBUR_RATE_PER_HOUR,
   JAM_KERJA_NORMAL
 } from '../../_utils/allowance';
+import { getWibDateFromTimestamp } from '../../_utils/timezone';
 
 const app = new Hono<{ Bindings: Env; Variables: { user: any } }>();
 
@@ -100,10 +101,11 @@ app.get('/commission/:user_id', async (c) => {
   const ym = `${year}-${month.toString().padStart(2, '0')}`;
   
   // Get production summary per process
+  // Use datetime with +7 hours to convert UTC to WIB for proper month grouping
   const production = await db.prepare(`
     SELECT process, SUM(weight) as total_kg
     FROM production
-    WHERE user_id = ? AND substr(timestamp, 1, 7) = ?
+    WHERE user_id = ? AND strftime('%Y-%m', datetime(timestamp, '+7 hours')) = ?
     GROUP BY process
   `).bind(user_id, ym).all();
   
@@ -155,54 +157,57 @@ app.get('/allowances/:user_id', async (c) => {
   const masa_kerja_bulan = calculateMasaKerja(user.join_date, monthNum, yearNum);
   
   // Get attendance count for the period (only active records)
+  // Use datetime with +7 hours to convert UTC to WIB for proper date grouping
   const attendanceResult = await db.prepare(`
-    SELECT COUNT(DISTINCT DATE(timestamp)) as attendance_count
+    SELECT COUNT(DISTINCT DATE(datetime(timestamp, '+7 hours'))) as attendance_count
     FROM attendance
     WHERE user_id = ?
       AND type = 'in'
       AND status = 'active'
-      AND strftime('%Y-%m', timestamp) = ?
+      AND strftime('%Y-%m', datetime(timestamp, '+7 hours')) = ?
   `).bind(user_id, ym).first() as { attendance_count: number } | null;
   
   const attendance_count = attendanceResult?.attendance_count || 0;
   
-  // Get late count - determine shift by clock-in time (only active records)
-  // Shift pagi: clock-in before 12:00, should be at 07:00, late if > 07:15
-  // Shift sore: clock-in at 12:00 or later, should be at 14:00, late if > 14:15
+  // Get late count - determine shift by clock-in time in WIB (only active records)
+  // Use datetime with +7 hours to convert UTC to WIB
+  // Shift pagi: clock-in before 12:00 WIB, should be at 07:00, late if > 07:15
+  // Shift sore: clock-in at 12:00 WIB or later, should be at 14:00, late if > 14:15
   const lateResult = await db.prepare(`
     SELECT COUNT(*) as late_count
     FROM attendance
     WHERE user_id = ?
       AND type = 'in'
       AND status = 'active'
-      AND strftime('%Y-%m', timestamp) = ?
+      AND strftime('%Y-%m', datetime(timestamp, '+7 hours')) = ?
       AND (
-        (CAST(strftime('%H', timestamp) AS INTEGER) < 12 
-         AND CAST(strftime('%H', timestamp) AS INTEGER) * 60 + CAST(strftime('%M', timestamp) AS INTEGER) > (7 * 60 + ${LATE_TOLERANCE_MINUTES}))
+        (CAST(strftime('%H', datetime(timestamp, '+7 hours')) AS INTEGER) < 12 
+         AND CAST(strftime('%H', datetime(timestamp, '+7 hours')) AS INTEGER) * 60 + CAST(strftime('%M', datetime(timestamp, '+7 hours')) AS INTEGER) > (7 * 60 + ${LATE_TOLERANCE_MINUTES}))
         OR
-        (CAST(strftime('%H', timestamp) AS INTEGER) >= 12 
-         AND CAST(strftime('%H', timestamp) AS INTEGER) * 60 + CAST(strftime('%M', timestamp) AS INTEGER) > (14 * 60 + ${LATE_TOLERANCE_MINUTES}))
+        (CAST(strftime('%H', datetime(timestamp, '+7 hours')) AS INTEGER) >= 12 
+         AND CAST(strftime('%H', datetime(timestamp, '+7 hours')) AS INTEGER) * 60 + CAST(strftime('%M', datetime(timestamp, '+7 hours')) AS INTEGER) > (14 * 60 + ${LATE_TOLERANCE_MINUTES}))
       )
   `).bind(user_id, ym).first() as { late_count: number } | null;
   
   const late_count = lateResult?.late_count || 0;
   
   // Calculate total work hours and overtime from attendance pairs (in/out, only active records)
+  // Use datetime with +7 hours to convert UTC to WIB for proper date matching
   const workHoursResult = await db.prepare(`
     SELECT 
-      DATE(a_in.timestamp) as work_date,
+      DATE(datetime(a_in.timestamp, '+7 hours')) as work_date,
       a_in.timestamp as clock_in,
       a_out.timestamp as clock_out,
       (julianday(a_out.timestamp) - julianday(a_in.timestamp)) * 24 as work_hours
     FROM attendance a_in
     LEFT JOIN attendance a_out ON a_in.user_id = a_out.user_id 
-      AND DATE(a_in.timestamp) = DATE(a_out.timestamp)
+      AND DATE(datetime(a_in.timestamp, '+7 hours')) = DATE(datetime(a_out.timestamp, '+7 hours'))
       AND a_out.type = 'out'
       AND a_out.status = 'active'
     WHERE a_in.user_id = ?
       AND a_in.type = 'in'
       AND a_in.status = 'active'
-      AND strftime('%Y-%m', a_in.timestamp) = ?
+      AND strftime('%Y-%m', datetime(a_in.timestamp, '+7 hours')) = ?
   `).bind(user_id, ym).all();
   
   // Calculate total overtime hours (only count if >= 3 hours per day)

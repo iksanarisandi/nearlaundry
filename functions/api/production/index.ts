@@ -1,6 +1,7 @@
 import { Hono } from 'hono';
 import type { Env } from '../../index';
 import { authMiddleware, requireRole } from '../../_utils/auth';
+import { getTodayWib, getWibDateBoundaries, getWibDateFromTimestamp } from '../../_utils/timezone';
 
 const app = new Hono<{ Bindings: Env; Variables: { user: any } }>();
 
@@ -104,10 +105,10 @@ app.delete('/:id', async (c) => {
     return c.json({ message: 'Data tidak ditemukan atau bukan milik Anda' }, 404);
   }
 
-  // Check if entry is from today
-  const entryDate = new Date(entry.timestamp as string).toDateString();
-  const today = new Date().toDateString();
-  if (entryDate !== today) {
+  // Check if entry is from today (using WIB timezone)
+  const entryDateWib = getWibDateFromTimestamp(entry.timestamp as string);
+  const todayWib = getTodayWib();
+  if (entryDateWib !== todayWib) {
     return c.json({ message: 'Hanya bisa hapus data hari ini' }, 400);
   }
 
@@ -131,10 +132,10 @@ app.put('/:id', async (c) => {
     return c.json({ message: 'Data tidak ditemukan atau bukan milik Anda' }, 404);
   }
 
-  // Check if entry is from today
-  const entryDate = new Date(entry.timestamp as string).toDateString();
-  const today = new Date().toDateString();
-  if (entryDate !== today) {
+  // Check if entry is from today (using WIB timezone)
+  const entryDateWib = getWibDateFromTimestamp(entry.timestamp as string);
+  const todayWib = getTodayWib();
+  if (entryDateWib !== todayWib) {
     return c.json({ message: 'Hanya bisa edit data hari ini' }, 400);
   }
 

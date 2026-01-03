@@ -1,6 +1,7 @@
 import { Hono } from 'hono';
 import type { Env } from '../../index';
 import { authMiddleware, requireRole } from '../../_utils/auth';
+import { getWibDateBoundaries } from '../../_utils/timezone';
 
 const app = new Hono<{ Bindings: Env; Variables: { user: any } }>();
 
@@ -40,9 +41,17 @@ app.get('/riwayat', async (c) => {
   }
   const user = c.get('user');
 
+  // Get WIB date boundaries for proper timezone filtering
+  let boundaries;
+  try {
+    boundaries = getWibDateBoundaries(date);
+  } catch (e) {
+    return c.json({ message: 'Format tanggal tidak valid (YYYY-MM-DD)' }, 400);
+  }
+
   const deliveries = await c.env.DB.prepare(
-    'SELECT id, type, customer_name, address, nota_number, status, timestamp FROM deliveries WHERE user_id = ? AND substr(timestamp, 1, 10) = ? ORDER BY id DESC'
-  ).bind(user.sub, date).all();
+    'SELECT id, type, customer_name, address, nota_number, status, timestamp FROM deliveries WHERE user_id = ? AND timestamp >= ? AND timestamp <= ? ORDER BY id DESC'
+  ).bind(user.sub, boundaries.startUtc, boundaries.endUtc).all();
 
   return c.json(deliveries.results ?? []);
 });

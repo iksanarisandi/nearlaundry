@@ -36,9 +36,7 @@
         <div>
           <label class="block text-xs font-medium text-slate-600 mb-1">Outlet</label>
           <select id="outlet_id" class="w-full rounded-lg border border-slate-200 px-3 py-2 text-sm" required>
-            <option value="">Pilih outlet</option>
-            <option value="1">Outlet Pusat</option>
-            <option value="2">Outlet Cabang 1</option>
+            <option value="">Memuat outlet...</option>
           </select>
         </div>
         <div>
@@ -91,6 +89,31 @@
     // set default tanggal hari ini
     const today = new Date();
     document.getElementById('date').valueAsDate = today;
+
+    // Load outlets dari API
+    async function loadOutlets() {
+      const outletSelect = document.getElementById('outlet_id');
+      try {
+        const res = await fetch('/api/admin/outlets', {
+          headers: { 'Authorization': 'Bearer ' + getToken() }
+        });
+        if (!res.ok) throw new Error('Gagal memuat outlet');
+        const outlets = await res.json();
+        outletSelect.innerHTML = '<option value="">Pilih outlet</option>';
+        outlets.forEach(outlet => {
+          const opt = document.createElement('option');
+          opt.value = outlet.id;
+          opt.textContent = outlet.name;
+          outletSelect.appendChild(opt);
+        });
+      } catch (err) {
+        outletSelect.innerHTML = '<option value="">Gagal memuat outlet</option>';
+        console.error(err);
+      }
+    }
+
+    // Load outlets saat halaman dimuat
+    loadOutlets();
   </script>
 </body>
 </html>
