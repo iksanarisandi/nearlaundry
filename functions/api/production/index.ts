@@ -99,10 +99,15 @@ app.delete('/:id', async (c) => {
   // Check if entry exists and belongs to user
   const entry = await db.prepare(
     'SELECT * FROM production WHERE id = ? AND user_id = ?'
-  ).bind(id, user.sub).first();
+  ).bind(id, user.sub).first() as any;
 
   if (!entry) {
     return c.json({ message: 'Data tidak ditemukan atau bukan milik Anda' }, 404);
+  }
+
+  // Check if entry has been edited by admin (locked)
+  if (entry.edited_by_admin) {
+    return c.json({ message: 'Data sudah diedit oleh admin dan tidak bisa dihapus' }, 403);
   }
 
   // Check if entry is from today (using WIB timezone)
@@ -130,6 +135,11 @@ app.put('/:id', async (c) => {
 
   if (!entry) {
     return c.json({ message: 'Data tidak ditemukan atau bukan milik Anda' }, 404);
+  }
+
+  // Check if entry has been edited by admin (locked)
+  if (entry.edited_by_admin) {
+    return c.json({ message: 'Data sudah diedit oleh admin dan tidak bisa diubah' }, 403);
   }
 
   // Check if entry is from today (using WIB timezone)

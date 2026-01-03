@@ -17,6 +17,7 @@ import kasbonRoute from './api/admin/kasbon';
 import trackingRoute from './api/admin/tracking';
 import attendanceAnnulRoute from './api/admin/attendance_annul';
 import adminExpensesRoute from './api/admin/expenses';
+import productionAuditRoute from './api/admin/production-audit';
 import productionRoute from './api/production/index';
 import attendanceRoute from './api/production/attendance';
 import expensesRoute from './api/production/expenses';
@@ -63,6 +64,7 @@ app.route('/api/admin/kasbon', kasbonRoute);
 app.route('/api/admin/tracking', trackingRoute);
 app.route('/api/admin/attendance/annul', attendanceAnnulRoute);
 app.route('/api/admin/expenses', adminExpensesRoute);
+app.route('/api/admin/production-audit', productionAuditRoute);
 
 // Production routes
 app.route('/api/production', productionRoute);

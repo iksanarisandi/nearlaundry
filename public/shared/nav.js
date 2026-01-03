@@ -56,6 +56,7 @@ function renderAdminNav(currentPage) {
     { href: '/admin/dashboard.html', label: 'Dashboard', key: 'dashboard' },
     { href: '/admin/tracking.html', label: 'Tracking', key: 'tracking' },
     { href: '/admin/absensi.html', label: 'Absensi', key: 'absensi' },
+    { href: '/admin/audit-produksi.html', label: 'Audit', key: 'audit-produksi' },
     { href: '/admin/omzet.html', label: 'Omzet', key: 'omzet' },
     { href: '/admin/pengeluaran.html', label: 'Pengeluaran', key: 'pengeluaran' },
     { href: '/admin/payroll-v2.html', label: 'Payroll', key: 'payroll' },
