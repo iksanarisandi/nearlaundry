@@ -1,19 +1,19 @@
 /**
  * Timezone Utility for Frontend
- * Handles WIB (UTC+7) timezone display for Cloudflare D1 applications
+ * Handles WITA (UTC+8) timezone display for Cloudflare D1 applications
  * 
  * Usage:
  * <script src="/shared/timezone.js"></script>
  * 
  * Then use:
- * - WibTime.formatDateTime(timestamp)
- * - WibTime.formatTime(timestamp)
- * - WibTime.formatDate(timestamp)
- * - WibTime.getTodayWib()
- * - WibTime.getCurrentMonthWib()
+ * - WitaTime.formatDateTime(timestamp)
+ * - WitaTime.formatTime(timestamp)
+ * - WitaTime.formatDate(timestamp)
+ * - WitaTime.getTodayWita()
+ * - WitaTime.getCurrentMonthWita()
  */
 
-const WibTime = {
+const WitaTime = {
   /**
    * Ensure timestamp has 'Z' suffix for proper UTC parsing
    * D1 SQLite may return timestamps without 'Z' suffix
@@ -24,7 +24,7 @@ const WibTime = {
   },
 
   /**
-   * Format timestamp to full datetime in WIB
+   * Format timestamp to full datetime in WITA
    * @param {string} timestamp - UTC timestamp from database
    * @returns {string} Formatted datetime (e.g., "03/01/2025, 14:30")
    */
@@ -34,7 +34,7 @@ const WibTime = {
     const d = new Date(ts);
     if (Number.isNaN(d.getTime())) return timestamp;
     return d.toLocaleString('id-ID', {
-      timeZone: 'Asia/Jakarta',
+      timeZone: 'Asia/Makassar',
       day: '2-digit',
       month: '2-digit',
       year: 'numeric',
@@ -44,7 +44,7 @@ const WibTime = {
   },
 
   /**
-   * Format timestamp to time only in WIB
+   * Format timestamp to time only in WITA
    * @param {string} timestamp - UTC timestamp from database
    * @returns {string} Formatted time (e.g., "14:30:00")
    */
@@ -54,7 +54,7 @@ const WibTime = {
     const d = new Date(ts);
     if (Number.isNaN(d.getTime())) return timestamp;
     return d.toLocaleTimeString('id-ID', {
-      timeZone: 'Asia/Jakarta',
+      timeZone: 'Asia/Makassar',
       hour: '2-digit',
       minute: '2-digit',
       second: '2-digit'
@@ -62,7 +62,7 @@ const WibTime = {
   },
 
   /**
-   * Format timestamp to date only in WIB
+   * Format timestamp to date only in WITA
    * @param {string} timestamp - UTC timestamp from database
    * @returns {string} Formatted date (e.g., "03/01/2025")
    */
@@ -72,7 +72,7 @@ const WibTime = {
     const d = new Date(ts);
     if (Number.isNaN(d.getTime())) return timestamp;
     return d.toLocaleDateString('id-ID', {
-      timeZone: 'Asia/Jakarta',
+      timeZone: 'Asia/Makassar',
       day: '2-digit',
       month: '2-digit',
       year: 'numeric'
@@ -80,32 +80,32 @@ const WibTime = {
   },
 
   /**
-   * Get current date in WIB timezone as YYYY-MM-DD
+   * Get current date in WITA timezone as YYYY-MM-DD
    * Use for date picker default values and "today" checks
    * @returns {string} Date string (e.g., "2025-01-03")
    */
-  getTodayWib() {
+  getTodayWita() {
     const now = new Date();
-    const wibTime = new Date(now.getTime() + (7 * 60 * 60 * 1000));
-    return wibTime.toISOString().split('T')[0];
+    const witaTime = new Date(now.getTime() + (8 * 60 * 60 * 1000));
+    return witaTime.toISOString().split('T')[0];
   },
 
   /**
-   * Get current month and year in WIB timezone
+   * Get current month and year in WITA timezone
    * Use for payroll and monthly report defaults
    * @returns {{month: number, year: number}}
    */
-  getCurrentMonthWib() {
+  getCurrentMonthWita() {
     const now = new Date();
-    const wibTime = new Date(now.getTime() + (7 * 60 * 60 * 1000));
+    const witaTime = new Date(now.getTime() + (8 * 60 * 60 * 1000));
     return {
-      month: wibTime.getMonth() + 1,
-      year: wibTime.getFullYear()
+      month: witaTime.getMonth() + 1,
+      year: witaTime.getFullYear()
     };
   },
 
   /**
-   * Check if a timestamp is from today (WIB)
+   * Check if a timestamp is from today (WITA)
    * @param {string} timestamp - UTC timestamp from database
    * @returns {boolean}
    */
@@ -113,9 +113,9 @@ const WibTime = {
     if (!timestamp) return false;
     const ts = this.ensureUtcSuffix(timestamp);
     const d = new Date(ts);
-    const wibDate = new Date(d.getTime() + (7 * 60 * 60 * 1000));
-    const today = this.getTodayWib();
-    return wibDate.toISOString().split('T')[0] === today;
+    const witaDate = new Date(d.getTime() + (8 * 60 * 60 * 1000));
+    const today = this.getTodayWita();
+    return witaDate.toISOString().split('T')[0] === today;
   },
 
   /**
@@ -144,7 +144,10 @@ const WibTime = {
   }
 };
 
+// Legacy alias for backward compatibility
+const WibTime = WitaTime;
+
 // Export for module usage (if needed)
 if (typeof module !== 'undefined' && module.exports) {
-  module.exports = WibTime;
+  module.exports = WitaTime;
 }

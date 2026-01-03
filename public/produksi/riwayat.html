@@ -88,12 +88,12 @@
 
     const processLabels = { cuci: 'Cuci', kering: 'Keringkan', setrika: 'Setrika', packing: 'Packing', cuci_sepatu: 'Cuci Sepatu', cuci_satuan: 'Cuci Satuan' };
 
-    // Helper function to get today's date in WIB timezone
-    function getTodayWib() {
+    // Helper function to get today's date in WITA timezone
+    function getTodayWita() {
       const now = new Date();
-      // Add 7 hours to get WIB time
-      const wibTime = new Date(now.getTime() + (7 * 60 * 60 * 1000));
-      return wibTime.toISOString().split('T')[0];
+      // Add 8 hours to get WITA time
+      const witaTime = new Date(now.getTime() + (8 * 60 * 60 * 1000));
+      return witaTime.toISOString().split('T')[0];
     }
 
     async function loadRiwayat(dateStr) {
@@ -115,7 +115,7 @@
         let totalWeight = 0, totalQty = 0;
         const processCounts = { cuci: 0, kering: 0, setrika: 0, packing: 0, cuci_sepatu: 0, cuci_satuan: 0 };
 
-        const isToday = dateStr === getTodayWib();
+        const isToday = dateStr === getTodayWita();
         (data.production || []).forEach((row) => {
           const tr = document.createElement('tr');
           tr.innerHTML = `

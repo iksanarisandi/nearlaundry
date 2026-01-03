@@ -57,6 +57,7 @@ function renderAdminNav(currentPage) {
     { href: '/admin/tracking.html', label: 'Tracking', key: 'tracking' },
     { href: '/admin/absensi.html', label: 'Absensi', key: 'absensi' },
     { href: '/admin/omzet.html', label: 'Omzet', key: 'omzet' },
+    { href: '/admin/pengeluaran.html', label: 'Pengeluaran', key: 'pengeluaran' },
     { href: '/admin/payroll-v2.html', label: 'Payroll', key: 'payroll' },
     { href: '/admin/kasbon.html', label: 'Kasbon', key: 'kasbon' },
     { href: '/admin/komisi.html', label: 'Komisi', key: 'komisi' },

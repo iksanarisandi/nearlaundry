@@ -85,8 +85,8 @@
       // Ensure timestamp has Z suffix for proper UTC parsing
       const tsWithZ = ts.endsWith('Z') ? ts : ts + 'Z';
       const d = new Date(tsWithZ);
-      // Format in WIB timezone (Asia/Jakarta)
-      return d.toLocaleDateString('id-ID', { timeZone: 'Asia/Jakarta' }) + ' ' + d.toLocaleTimeString('id-ID', { hour: '2-digit', minute: '2-digit', timeZone: 'Asia/Jakarta' });
+      // Format in WITA timezone (Asia/Makassar)
+      return d.toLocaleDateString('id-ID', { timeZone: 'Asia/Makassar' }) + ' ' + d.toLocaleTimeString('id-ID', { hour: '2-digit', minute: '2-digit', timeZone: 'Asia/Makassar' });
     }
 
     document.getElementById('search-form').addEventListener('submit', async (e) => {

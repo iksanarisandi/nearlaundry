@@ -1,8 +1,17 @@
 import { describe, it, expect } from 'vitest';
 import {
+  utcToWita,
+  witaToUtc,
+  isValidTimestamp,
+  parseIsoToWita,
+  formatWita,
+  getWitaDateBoundaries,
+  getTodayWita,
+  getWitaDateFromTimestamp,
+  isTimestampInWitaDate,
+  // Legacy aliases
   utcToWib,
   wibToUtc,
-  isValidTimestamp,
   parseIsoToWib,
   formatWib,
   getWibDateBoundaries,
@@ -11,53 +20,53 @@ import {
   isTimestampInWibDate
 } from './timezone';
 
-describe('Timezone Utility Functions', () => {
-  describe('utcToWib', () => {
-    it('should convert UTC to WIB (add 7 hours)', () => {
+describe('Timezone Utility Functions (WITA - UTC+8)', () => {
+  describe('utcToWita', () => {
+    it('should convert UTC to WITA (add 8 hours)', () => {
       const utc = new Date('2025-01-02T10:00:00Z');
-      const wib = utcToWib(utc);
+      const wita = utcToWita(utc);
       
-      // WIB should be 7 hours ahead
-      expect(wib.getUTCHours()).toBe(17);
-      expect(wib.getUTCDate()).toBe(2);
+      // WITA should be 8 hours ahead
+      expect(wita.getUTCHours()).toBe(18);
+      expect(wita.getUTCDate()).toBe(2);
     });
 
     it('should handle midnight UTC correctly', () => {
       const utc = new Date('2025-01-02T00:00:00Z');
-      const wib = utcToWib(utc);
+      const wita = utcToWita(utc);
       
-      // 00:00 UTC = 07:00 WIB same day
-      expect(wib.getUTCHours()).toBe(7);
-      expect(wib.getUTCDate()).toBe(2);
+      // 00:00 UTC = 08:00 WITA same day
+      expect(wita.getUTCHours()).toBe(8);
+      expect(wita.getUTCDate()).toBe(2);
     });
 
     it('should handle date boundary crossing', () => {
       const utc = new Date('2025-01-01T20:00:00Z');
-      const wib = utcToWib(utc);
+      const wita = utcToWita(utc);
       
-      // 20:00 UTC Jan 1 = 03:00 WIB Jan 2
-      expect(wib.getUTCHours()).toBe(3);
-      expect(wib.getUTCDate()).toBe(2);
+      // 20:00 UTC Jan 1 = 04:00 WITA Jan 2
+      expect(wita.getUTCHours()).toBe(4);
+      expect(wita.getUTCDate()).toBe(2);
     });
   });
 
-  describe('wibToUtc', () => {
-    it('should convert WIB to UTC (subtract 7 hours)', () => {
-      // Create a date representing 17:00 WIB
-      const wib = new Date('2025-01-02T17:00:00+07:00');
-      const utc = wibToUtc(wib);
+  describe('witaToUtc', () => {
+    it('should convert WITA to UTC (subtract 8 hours)', () => {
+      // Create a date representing 18:00 WITA
+      const wita = new Date('2025-01-02T18:00:00+08:00');
+      const utc = witaToUtc(wita);
       
-      // Verify the conversion subtracts 7 hours
-      const expectedUtc = new Date(wib.getTime() - (7 * 60 * 60 * 1000));
+      // Verify the conversion subtracts 8 hours
+      const expectedUtc = new Date(wita.getTime() - (8 * 60 * 60 * 1000));
       expect(utc.getTime()).toBe(expectedUtc.getTime());
     });
 
-    it('should handle midnight WIB correctly', () => {
-      // 00:00 WIB = 17:00 UTC previous day
-      const wib = new Date('2025-01-02T00:00:00+07:00');
-      const utc = wibToUtc(wib);
+    it('should handle midnight WITA correctly', () => {
+      // 00:00 WITA = 16:00 UTC previous day
+      const wita = new Date('2025-01-02T00:00:00+08:00');
+      const utc = witaToUtc(wita);
       
-      const expectedUtc = new Date(wib.getTime() - (7 * 60 * 60 * 1000));
+      const expectedUtc = new Date(wita.getTime() - (8 * 60 * 60 * 1000));
       expect(utc.getTime()).toBe(expectedUtc.getTime());
       expect(utc.getUTCDate()).toBe(1); // Should be previous day
     });
@@ -91,41 +100,41 @@ describe('Timezone Utility Functions', () => {
     });
   });
 
-  describe('parseIsoToWib', () => {
-    it('should parse valid ISO string and convert to WIB', () => {
+  describe('parseIsoToWita', () => {
+    it('should parse valid ISO string and convert to WITA', () => {
       const isoString = '2025-01-02T10:00:00Z';
-      const wib = parseIsoToWib(isoString);
+      const wita = parseIsoToWita(isoString);
       
-      expect(wib.getUTCHours()).toBe(17);
-      expect(wib.getUTCDate()).toBe(2);
+      expect(wita.getUTCHours()).toBe(18);
+      expect(wita.getUTCDate()).toBe(2);
     });
 
     it('should throw error for invalid ISO string', () => {
-      expect(() => parseIsoToWib('invalid-date')).toThrow('Invalid ISO string format');
+      expect(() => parseIsoToWita('invalid-date')).toThrow('Invalid ISO string format');
     });
 
     it('should throw error for empty string', () => {
-      expect(() => parseIsoToWib('')).toThrow('Invalid ISO string: input must be a non-empty string');
+      expect(() => parseIsoToWita('')).toThrow('Invalid ISO string: input must be a non-empty string');
     });
 
     it('should throw error for non-string input', () => {
-      expect(() => parseIsoToWib(null as any)).toThrow('Invalid ISO string: input must be a non-empty string');
-      expect(() => parseIsoToWib(undefined as any)).toThrow('Invalid ISO string: input must be a non-empty string');
+      expect(() => parseIsoToWita(null as any)).toThrow('Invalid ISO string: input must be a non-empty string');
+      expect(() => parseIsoToWita(undefined as any)).toThrow('Invalid ISO string: input must be a non-empty string');
     });
 
     it('should handle ISO string with timezone offset', () => {
-      const isoString = '2025-01-02T17:00:00+07:00';
-      const wib = parseIsoToWib(isoString);
+      const isoString = '2025-01-02T18:00:00+08:00';
+      const wita = parseIsoToWita(isoString);
       
-      expect(wib).toBeInstanceOf(Date);
-      expect(isNaN(wib.getTime())).toBe(false);
+      expect(wita).toBeInstanceOf(Date);
+      expect(isNaN(wita.getTime())).toBe(false);
     });
   });
 
-  describe('formatWib', () => {
-    it('should format date in Indonesian locale with WIB timezone', () => {
+  describe('formatWita', () => {
+    it('should format date in Indonesian locale with WITA timezone', () => {
       const date = new Date('2025-01-02T10:00:00Z');
-      const formatted = formatWib(date);
+      const formatted = formatWita(date);
       
       // Should contain Indonesian month name
       expect(formatted).toContain('Januari');
@@ -141,121 +150,144 @@ describe('Timezone Utility Functions', () => {
       ];
 
       dates.forEach(({ date, month }) => {
-        const formatted = formatWib(date);
+        const formatted = formatWita(date);
         expect(formatted).toContain(month);
       });
     });
   });
 
-  describe('getWibDateBoundaries', () => {
-    it('should calculate correct UTC boundaries for WIB date', () => {
-      const boundaries = getWibDateBoundaries('2025-01-02');
+  describe('getWitaDateBoundaries', () => {
+    it('should calculate correct UTC boundaries for WITA date', () => {
+      const boundaries = getWitaDateBoundaries('2025-01-02');
       
-      // Start: 2025-01-02 00:00:00 WIB = 2025-01-01 17:00:00 UTC
-      expect(boundaries.startUtc).toBe('2025-01-01T17:00:00.000Z');
+      // Start: 2025-01-02 00:00:00 WITA = 2025-01-01 16:00:00 UTC
+      expect(boundaries.startUtc).toBe('2025-01-01T16:00:00.000Z');
       
-      // End: 2025-01-02 23:59:59 WIB = 2025-01-02 16:59:59 UTC
-      expect(boundaries.endUtc).toBe('2025-01-02T16:59:59.000Z');
+      // End: 2025-01-02 23:59:59 WITA = 2025-01-02 15:59:59 UTC
+      expect(boundaries.endUtc).toBe('2025-01-02T15:59:59.000Z');
     });
 
     it('should handle month boundaries', () => {
       // Last day of month
-      const lastDay = getWibDateBoundaries('2025-01-31');
-      expect(lastDay.startUtc).toBe('2025-01-30T17:00:00.000Z');
-      expect(lastDay.endUtc).toBe('2025-01-31T16:59:59.000Z');
+      const lastDay = getWitaDateBoundaries('2025-01-31');
+      expect(lastDay.startUtc).toBe('2025-01-30T16:00:00.000Z');
+      expect(lastDay.endUtc).toBe('2025-01-31T15:59:59.000Z');
       
       // First day of month
-      const firstDay = getWibDateBoundaries('2025-02-01');
-      expect(firstDay.startUtc).toBe('2025-01-31T17:00:00.000Z');
-      expect(firstDay.endUtc).toBe('2025-02-01T16:59:59.000Z');
+      const firstDay = getWitaDateBoundaries('2025-02-01');
+      expect(firstDay.startUtc).toBe('2025-01-31T16:00:00.000Z');
+      expect(firstDay.endUtc).toBe('2025-02-01T15:59:59.000Z');
     });
 
     it('should handle year boundaries', () => {
       // Last day of year
-      const lastDay = getWibDateBoundaries('2024-12-31');
-      expect(lastDay.startUtc).toBe('2024-12-30T17:00:00.000Z');
-      expect(lastDay.endUtc).toBe('2024-12-31T16:59:59.000Z');
+      const lastDay = getWitaDateBoundaries('2024-12-31');
+      expect(lastDay.startUtc).toBe('2024-12-30T16:00:00.000Z');
+      expect(lastDay.endUtc).toBe('2024-12-31T15:59:59.000Z');
       
       // First day of year
-      const firstDay = getWibDateBoundaries('2025-01-01');
-      expect(firstDay.startUtc).toBe('2024-12-31T17:00:00.000Z');
-      expect(firstDay.endUtc).toBe('2025-01-01T16:59:59.000Z');
+      const firstDay = getWitaDateBoundaries('2025-01-01');
+      expect(firstDay.startUtc).toBe('2024-12-31T16:00:00.000Z');
+      expect(firstDay.endUtc).toBe('2025-01-01T15:59:59.000Z');
     });
 
     it('should throw error for invalid date format', () => {
-      expect(() => getWibDateBoundaries('2025/01/02')).toThrow('Invalid date format');
-      expect(() => getWibDateBoundaries('01-02-2025')).toThrow('Invalid date format');
-      expect(() => getWibDateBoundaries('invalid')).toThrow('Invalid date format');
+      expect(() => getWitaDateBoundaries('2025/01/02')).toThrow('Invalid date format');
+      expect(() => getWitaDateBoundaries('01-02-2025')).toThrow('Invalid date format');
+      expect(() => getWitaDateBoundaries('invalid')).toThrow('Invalid date format');
     });
 
     it('should throw error for invalid date values', () => {
-      expect(() => getWibDateBoundaries('2025-13-01')).toThrow('Invalid date values');
-      expect(() => getWibDateBoundaries('2025-01-32')).toThrow('Invalid date values');
-      expect(() => getWibDateBoundaries('2025-00-15')).toThrow('Invalid date values');
+      expect(() => getWitaDateBoundaries('2025-13-01')).toThrow('Invalid date values');
+      expect(() => getWitaDateBoundaries('2025-01-32')).toThrow('Invalid date values');
+      expect(() => getWitaDateBoundaries('2025-00-15')).toThrow('Invalid date values');
     });
   });
 
-  describe('getTodayWib', () => {
+  describe('getTodayWita', () => {
     it('should return date in YYYY-MM-DD format', () => {
-      const today = getTodayWib();
+      const today = getTodayWita();
       expect(today).toMatch(/^\d{4}-\d{2}-\d{2}$/);
     });
   });
 
-  describe('getWibDateFromTimestamp', () => {
-    it('should extract WIB date from UTC timestamp', () => {
-      // 2025-01-01 20:00 UTC = 2025-01-02 03:00 WIB
+  describe('getWitaDateFromTimestamp', () => {
+    it('should extract WITA date from UTC timestamp', () => {
+      // 2025-01-01 20:00 UTC = 2025-01-02 04:00 WITA
       const timestamp = '2025-01-01T20:00:00Z';
-      const wibDate = getWibDateFromTimestamp(timestamp);
-      expect(wibDate).toBe('2025-01-02');
+      const witaDate = getWitaDateFromTimestamp(timestamp);
+      expect(witaDate).toBe('2025-01-02');
     });
 
     it('should handle timestamps that stay in same day', () => {
-      // 2025-01-02 10:00 UTC = 2025-01-02 17:00 WIB
+      // 2025-01-02 10:00 UTC = 2025-01-02 18:00 WITA
       const timestamp = '2025-01-02T10:00:00Z';
-      const wibDate = getWibDateFromTimestamp(timestamp);
-      expect(wibDate).toBe('2025-01-02');
+      const witaDate = getWitaDateFromTimestamp(timestamp);
+      expect(witaDate).toBe('2025-01-02');
     });
   });
 
-  describe('isTimestampInWibDate', () => {
-    it('should return true for timestamp within WIB date', () => {
-      // 2025-01-02 10:00 UTC = 2025-01-02 17:00 WIB (within Jan 2 WIB)
-      expect(isTimestampInWibDate('2025-01-02T10:00:00Z', '2025-01-02')).toBe(true);
+  describe('isTimestampInWitaDate', () => {
+    it('should return true for timestamp within WITA date', () => {
+      // 2025-01-02 10:00 UTC = 2025-01-02 18:00 WITA (within Jan 2 WITA)
+      expect(isTimestampInWitaDate('2025-01-02T10:00:00Z', '2025-01-02')).toBe(true);
     });
 
-    it('should return false for timestamp outside WIB date', () => {
-      // 2025-01-01 10:00 UTC = 2025-01-01 17:00 WIB (not Jan 2 WIB)
-      expect(isTimestampInWibDate('2025-01-01T10:00:00Z', '2025-01-02')).toBe(false);
+    it('should return false for timestamp outside WITA date', () => {
+      // 2025-01-01 10:00 UTC = 2025-01-01 18:00 WITA (not Jan 2 WITA)
+      expect(isTimestampInWitaDate('2025-01-01T10:00:00Z', '2025-01-02')).toBe(false);
     });
 
     it('should handle boundary cases correctly', () => {
-      // 2025-01-01 17:00 UTC = 2025-01-02 00:00 WIB (start of Jan 2 WIB)
-      expect(isTimestampInWibDate('2025-01-01T17:00:00Z', '2025-01-02')).toBe(true);
+      // 2025-01-01 16:00 UTC = 2025-01-02 00:00 WITA (start of Jan 2 WITA)
+      expect(isTimestampInWitaDate('2025-01-01T16:00:00Z', '2025-01-02')).toBe(true);
       
-      // 2025-01-02 16:59:59 UTC = 2025-01-02 23:59:59 WIB (end of Jan 2 WIB)
-      expect(isTimestampInWibDate('2025-01-02T16:59:59Z', '2025-01-02')).toBe(true);
+      // 2025-01-02 15:59:59 UTC = 2025-01-02 23:59:59 WITA (end of Jan 2 WITA)
+      expect(isTimestampInWitaDate('2025-01-02T15:59:59Z', '2025-01-02')).toBe(true);
       
-      // 2025-01-02 17:00:00 UTC = 2025-01-03 00:00:00 WIB (start of Jan 3 WIB)
-      expect(isTimestampInWibDate('2025-01-02T17:00:00Z', '2025-01-02')).toBe(false);
+      // 2025-01-02 16:00:00 UTC = 2025-01-03 00:00:00 WITA (start of Jan 3 WITA)
+      expect(isTimestampInWitaDate('2025-01-02T16:00:00Z', '2025-01-02')).toBe(false);
     });
   });
 
   describe('Round-trip conversions', () => {
-    it('should preserve time when converting UTC -> WIB -> UTC', () => {
+    it('should preserve time when converting UTC -> WITA -> UTC', () => {
       const original = new Date('2025-01-02T10:30:45Z');
-      const wib = utcToWib(original);
-      const backToUtc = wibToUtc(wib);
+      const wita = utcToWita(original);
+      const backToUtc = witaToUtc(wita);
       
       expect(backToUtc.getTime()).toBe(original.getTime());
     });
 
-    it('should preserve time when converting WIB -> UTC -> WIB', () => {
-      const original = new Date('2025-01-02T17:30:45+07:00');
-      const utc = wibToUtc(original);
-      const backToWib = utcToWib(utc);
+    it('should preserve time when converting WITA -> UTC -> WITA', () => {
+      const original = new Date('2025-01-02T18:30:45+08:00');
+      const utc = witaToUtc(original);
+      const backToWita = utcToWita(utc);
       
-      expect(backToWib.getTime()).toBe(original.getTime());
+      expect(backToWita.getTime()).toBe(original.getTime());
+    });
+  });
+
+  describe('Legacy aliases (backward compatibility)', () => {
+    it('utcToWib should be alias for utcToWita', () => {
+      const utc = new Date('2025-01-02T10:00:00Z');
+      expect(utcToWib(utc).getTime()).toBe(utcToWita(utc).getTime());
+    });
+
+    it('wibToUtc should be alias for witaToUtc', () => {
+      const wita = new Date('2025-01-02T18:00:00+08:00');
+      expect(wibToUtc(wita).getTime()).toBe(witaToUtc(wita).getTime());
+    });
+
+    it('getTodayWib should be alias for getTodayWita', () => {
+      expect(getTodayWib()).toBe(getTodayWita());
+    });
+
+    it('getWibDateBoundaries should be alias for getWitaDateBoundaries', () => {
+      const wib = getWibDateBoundaries('2025-01-02');
+      const wita = getWitaDateBoundaries('2025-01-02');
+      expect(wib.startUtc).toBe(wita.startUtc);
+      expect(wib.endUtc).toBe(wita.endUtc);
     });
   });
 });

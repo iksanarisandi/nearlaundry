@@ -1,0 +1,408 @@
+<!-- nav-v2 -->
+<!doctype html>
+<html lang="id" class="h-full">
+<head>
+  <link rel="icon" type="image/png" href="/icon.png" />
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>Pengeluaran - NearMe Laundry</title>
+  <link rel="stylesheet" href="/styles.css" />
+  <script src="/shared/nav.js" defer></script>
+</head>
+<body class="min-h-full flex flex-col bg-slate-100" onload="NearMeNav.ensureRole(['admin'])">
+  <header class="bg-white shadow-sm">
+    <div class="mx-auto max-w-5xl px-4 py-3 flex items-center justify-between">
+      <div class="flex items-center gap-3">
+        <img src="/icon.png" alt="Logo" class="h-8 w-8 rounded-full object-cover" />
+        <div>
+          <div class="font-semibold text-primary text-sm">NearMe Laundry - Admin</div>
+          <div class="text-[11px] text-slate-500">Pengeluaran</div>
+        </div>
+      </div>
+      <nav class="flex items-center gap-3 text-[11px] text-slate-600"></nav>
+      <script>document.addEventListener('DOMContentLoaded', () => NearMeNav.renderAdminNav('pengeluaran'));</script>
+    </div>
+  </header>
+
+  <main class="flex-1 mx-auto w-full max-w-5xl px-4 py-4">
+    <div class="mb-4">
+      <h1 class="text-lg font-semibold">Pengeluaran</h1>
+      <p class="text-xs text-slate-500">Input dan kelola pengeluaran outlet.</p>
+    </div>
+
+    <!-- Form Input Pengeluaran -->
+    <div class="card mb-4">
+      <h2 class="text-sm font-semibold mb-3">Input Pengeluaran Baru</h2>
+      <form id="expense-form" class="grid grid-cols-1 md:grid-cols-6 gap-3">
+        <div>
+          <label class="block text-xs text-slate-600 mb-1">Outlet *</label>
+          <select id="outlet_id" class="w-full rounded border px-2 py-1 text-sm" required>
+            <option value="">Pilih outlet</option>
+          </select>
+        </div>
+        <div>
+          <label class="block text-xs text-slate-600 mb-1">Kategori *</label>
+          <select id="category" class="w-full rounded border px-2 py-1 text-sm" required>
+            <option value="">Pilih kategori</option>
+            <option value="BHP">BHP (Bahan Habis Pakai)</option>
+            <option value="DLL">DLL (Lain-lain)</option>
+            <option value="GAS">GAS</option>
+          </select>
+        </div>
+        <div id="subcategory-wrapper" class="hidden">
+          <label class="block text-xs text-slate-600 mb-1">Item BHP *</label>
+          <select id="subcategory" class="w-full rounded border px-2 py-1 text-sm">
+            <option value="">Pilih item</option>
+          </select>
+        </div>
+        <div id="qty-wrapper" class="hidden">
+          <label class="block text-xs text-slate-600 mb-1">Jumlah</label>
+          <input type="number" id="bhp_qty" min="1" value="1" class="w-full rounded border px-2 py-1 text-sm" />
+        </div>
+        <div id="keterangan-wrapper" class="hidden">
+          <label class="block text-xs text-slate-600 mb-1">Keterangan *</label>
+          <input type="text" id="keterangan" class="w-full rounded border px-2 py-1 text-sm" placeholder="Jelaskan" />
+        </div>
+        <div>
+          <label class="block text-xs text-slate-600 mb-1">Nominal (Rp) *</label>
+          <input type="number" id="amount" min="1" class="w-full rounded border px-2 py-1 text-sm" required />
+        </div>
+        <div>
+          <label class="block text-xs text-slate-600 mb-1">Tanggal</label>
+          <input type="date" id="expense_date" class="w-full rounded border px-2 py-1 text-sm" />
+        </div>
+        <div class="flex items-end">
+          <button type="submit" class="btn-primary w-full">Simpan</button>
+        </div>
+      </form>
+      <p class="text-[10px] text-slate-500 mt-1">Kosongkan tanggal untuk menggunakan hari ini</p>
+      <p id="form-status" class="text-xs text-slate-600 mt-2"></p>
+    </div>
+
+    <!-- Filter -->
+    <div class="card mb-4">
+      <div class="flex flex-wrap items-center gap-3">
+        <select id="filter-outlet" class="rounded border px-2 py-1 text-xs">
+          <option value="">Semua Outlet</option>
+        </select>
+        <select id="filter-month" class="rounded border px-2 py-1 text-xs">
+          <option value="1">Januari</option><option value="2">Februari</option>
+          <option value="3">Maret</option><option value="4">April</option>
+          <option value="5">Mei</option><option value="6">Juni</option>
+          <option value="7">Juli</option><option value="8">Agustus</option>
+          <option value="9">September</option><option value="10">Oktober</option>
+          <option value="11">November</option><option value="12">Desember</option>
+        </select>
+        <input type="number" id="filter-year" class="w-20 rounded border px-2 py-1 text-xs" />
+        <button onclick="loadExpenses()" class="btn-secondary text-xs py-1">Tampilkan</button>
+      </div>
+    </div>
+
+    <!-- Daftar Pengeluaran -->
+    <div class="card">
+      <h2 class="text-sm font-semibold mb-3">Daftar Pengeluaran</h2>
+      <div class="overflow-x-auto">
+        <table class="w-full text-xs">
+          <thead>
+            <tr class="text-left text-slate-500 border-b">
+              <th class="py-2">Tanggal</th>
+              <th class="py-2">Outlet</th>
+              <th class="py-2">Staff</th>
+              <th class="py-2">Kategori</th>
+              <th class="py-2 text-right">Nominal</th>
+              <th class="py-2 text-right">Aksi</th>
+            </tr>
+          </thead>
+          <tbody id="expense-body" class="divide-y"></tbody>
+        </table>
+      </div>
+      <div id="expense-total" class="mt-3 pt-3 border-t text-sm font-semibold"></div>
+    </div>
+  </main>
+
+  <!-- Modal Edit -->
+  <div id="edit-modal" style="display: none; position: fixed; top: 0; left: 0; right: 0; bottom: 0; background: rgba(0,0,0,0.5); z-index: 9999;">
+    <div style="position: fixed; top: 0; left: 0; right: 0; bottom: 0; display: flex; align-items: center; justify-content: center; padding: 16px;">
+      <div style="background: white; border-radius: 8px; padding: 16px; width: 100%; max-width: 400px; box-shadow: 0 4px 20px rgba(0,0,0,0.3);">
+        <h3 class="text-sm font-semibold mb-3">Edit Pengeluaran</h3>
+        <form id="edit-form" class="space-y-3">
+          <input type="hidden" id="edit-id" />
+          <div>
+            <label class="block text-xs text-slate-600 mb-1">Kategori *</label>
+            <input type="text" id="edit-category" class="w-full rounded border px-2 py-1 text-sm" required />
+          </div>
+          <div>
+            <label class="block text-xs text-slate-600 mb-1">Nominal (Rp) *</label>
+            <input type="number" id="edit-amount" min="1" class="w-full rounded border px-2 py-1 text-sm" required />
+          </div>
+          <div class="flex gap-2">
+            <button type="submit" class="btn-primary flex-1">Simpan</button>
+            <button type="button" onclick="closeEditModal()" class="btn-secondary flex-1">Batal</button>
+          </div>
+        </form>
+        <p id="edit-status" class="text-xs text-slate-600 mt-2"></p>
+      </div>
+    </div>
+  </div>
+
+
+  <script>
+    function getToken() { return localStorage.getItem('token'); }
+    function formatRupiah(v) { return 'Rp ' + (v || 0).toLocaleString('id-ID'); }
+    function formatDate(ts) {
+      if (!ts) return '-';
+      const tsWithZ = ts.endsWith('Z') ? ts : ts + 'Z';
+      return new Date(tsWithZ).toLocaleDateString('id-ID', { 
+        timeZone: 'Asia/Makassar',
+        day: '2-digit',
+        month: '2-digit',
+        year: 'numeric'
+      });
+    }
+
+    const today = new Date();
+    document.getElementById('filter-month').value = today.getMonth() + 1;
+    document.getElementById('filter-year').value = today.getFullYear();
+
+    let bhpItems = [];
+    let outlets = [];
+
+    // Load outlets
+    async function loadOutlets() {
+      const res = await fetch('/api/admin/outlets', {
+        headers: { 'Authorization': 'Bearer ' + getToken() }
+      });
+      outlets = await res.json();
+      
+      const outletSelect = document.getElementById('outlet_id');
+      const filterOutlet = document.getElementById('filter-outlet');
+      
+      outlets.forEach(o => {
+        outletSelect.innerHTML += `<option value="${o.id}">${o.name}</option>`;
+        filterOutlet.innerHTML += `<option value="${o.id}">${o.name}</option>`;
+      });
+    }
+
+    // Load BHP items
+    async function loadBhpItems() {
+      try {
+        const res = await fetch('/api/bhp-items');
+        bhpItems = await res.json();
+        
+        const grouped = {};
+        bhpItems.forEach(item => {
+          if (!grouped[item.category]) grouped[item.category] = [];
+          grouped[item.category].push(item);
+        });
+        
+        const subcategorySelect = document.getElementById('subcategory');
+        subcategorySelect.innerHTML = '<option value="">Pilih item BHP</option>';
+        Object.keys(grouped).sort().forEach(cat => {
+          const optgroup = document.createElement('optgroup');
+          optgroup.label = cat;
+          grouped[cat].forEach(item => {
+            const opt = document.createElement('option');
+            opt.value = item.name;
+            opt.dataset.price = item.price;
+            opt.textContent = `${item.name} (Rp ${item.price.toLocaleString('id-ID')}/${item.unit})`;
+            optgroup.appendChild(opt);
+          });
+          subcategorySelect.appendChild(optgroup);
+        });
+      } catch (e) {
+        console.error('Failed to load BHP items', e);
+      }
+    }
+
+    // Category change handler
+    const categorySelect = document.getElementById('category');
+    const subcategoryWrapper = document.getElementById('subcategory-wrapper');
+    const subcategorySelect = document.getElementById('subcategory');
+    const qtyWrapper = document.getElementById('qty-wrapper');
+    const bhpQtyInput = document.getElementById('bhp_qty');
+    const keteranganWrapper = document.getElementById('keterangan-wrapper');
+    const keteranganInput = document.getElementById('keterangan');
+    const amountInput = document.getElementById('amount');
+
+    categorySelect.addEventListener('change', () => {
+      const val = categorySelect.value;
+      if (val === 'BHP') {
+        subcategoryWrapper.classList.remove('hidden');
+        subcategorySelect.required = true;
+        qtyWrapper.classList.remove('hidden');
+        keteranganWrapper.classList.add('hidden');
+        keteranganInput.required = false;
+      } else if (val === 'DLL') {
+        subcategoryWrapper.classList.add('hidden');
+        subcategorySelect.required = false;
+        qtyWrapper.classList.add('hidden');
+        keteranganWrapper.classList.remove('hidden');
+        keteranganInput.required = true;
+      } else {
+        subcategoryWrapper.classList.add('hidden');
+        subcategorySelect.required = false;
+        qtyWrapper.classList.add('hidden');
+        keteranganWrapper.classList.add('hidden');
+        keteranganInput.required = false;
+      }
+    });
+
+    // Auto-calculate amount for BHP
+    subcategorySelect.addEventListener('change', () => {
+      const selected = subcategorySelect.options[subcategorySelect.selectedIndex];
+      const price = parseInt(selected.dataset.price) || 0;
+      const qty = parseInt(bhpQtyInput.value) || 1;
+      amountInput.value = price * qty;
+    });
+
+    bhpQtyInput.addEventListener('input', () => {
+      const selected = subcategorySelect.options[subcategorySelect.selectedIndex];
+      const price = parseInt(selected.dataset.price) || 0;
+      const qty = parseInt(bhpQtyInput.value) || 1;
+      amountInput.value = price * qty;
+    });
+
+    // Load expenses
+    async function loadExpenses() {
+      const month = document.getElementById('filter-month').value;
+      const year = document.getElementById('filter-year').value;
+      const outletId = document.getElementById('filter-outlet').value;
+      
+      let url = `/api/admin/expenses?month=${month}&year=${year}`;
+      if (outletId) url += `&outlet_id=${outletId}`;
+      
+      const res = await fetch(url, {
+        headers: { 'Authorization': 'Bearer ' + getToken() }
+      });
+      const data = await res.json();
+      
+      const body = document.getElementById('expense-body');
+      body.innerHTML = '';
+      let total = 0;
+      
+      (data || []).forEach(e => {
+        total += e.amount || 0;
+        body.innerHTML += `<tr>
+          <td class="py-2">${formatDate(e.timestamp)}</td>
+          <td class="py-2">${e.outlet_name}</td>
+          <td class="py-2">${e.user_name}</td>
+          <td class="py-2">${e.category}</td>
+          <td class="py-2 text-right">${formatRupiah(e.amount)}</td>
+          <td class="py-2 text-right">
+            <button onclick="openEditModal(${e.id}, '${e.category.replace(/'/g, "\\'")}', ${e.amount})" class="text-blue-500 underline mr-2">Edit</button>
+            <button onclick="deleteExpense(${e.id})" class="text-red-500 underline">Hapus</button>
+          </td>
+        </tr>`;
+      });
+      
+      document.getElementById('expense-total').textContent = `Total: ${formatRupiah(total)}`;
+    }
+
+    // Form submit
+    document.getElementById('expense-form').addEventListener('submit', async (e) => {
+      e.preventDefault();
+      const statusEl = document.getElementById('form-status');
+      statusEl.textContent = 'Menyimpan...';
+      statusEl.className = 'text-xs text-slate-600 mt-2';
+
+      const cat = categorySelect.value;
+      let finalCategory = cat;
+
+      if (cat === 'BHP') {
+        if (!subcategorySelect.value) {
+          statusEl.textContent = 'Pilih item BHP';
+          statusEl.className = 'text-xs text-red-500 mt-2';
+          return;
+        }
+        finalCategory = 'BHP - ' + subcategorySelect.value;
+      } else if (cat === 'DLL') {
+        if (!keteranganInput.value.trim()) {
+          statusEl.textContent = 'Isi keterangan untuk DLL';
+          statusEl.className = 'text-xs text-red-500 mt-2';
+          return;
+        }
+        finalCategory = 'DLL - ' + keteranganInput.value.trim();
+      }
+
+      const payload = {
+        outlet_id: Number(document.getElementById('outlet_id').value),
+        category: finalCategory,
+        amount: Number(amountInput.value),
+        date: document.getElementById('expense_date').value || null
+      };
+
+      const res = await fetch('/api/admin/expenses', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json', 'Authorization': 'Bearer ' + getToken() },
+        body: JSON.stringify(payload)
+      });
+      const data = await res.json();
+      statusEl.textContent = data.message;
+      statusEl.className = res.ok ? 'text-xs text-green-600 mt-2' : 'text-xs text-red-500 mt-2';
+
+      if (res.ok) {
+        document.getElementById('expense-form').reset();
+        subcategoryWrapper.classList.add('hidden');
+        qtyWrapper.classList.add('hidden');
+        keteranganWrapper.classList.add('hidden');
+        loadExpenses();
+      }
+    });
+
+    // Edit modal
+    function openEditModal(id, category, amount) {
+      document.getElementById('edit-id').value = id;
+      document.getElementById('edit-category').value = category;
+      document.getElementById('edit-amount').value = amount;
+      document.getElementById('edit-status').textContent = '';
+      document.getElementById('edit-modal').style.display = 'block';
+    }
+
+    function closeEditModal() {
+      document.getElementById('edit-modal').style.display = 'none';
+    }
+
+    document.getElementById('edit-form').addEventListener('submit', async (e) => {
+      e.preventDefault();
+      const statusEl = document.getElementById('edit-status');
+      statusEl.textContent = 'Menyimpan...';
+
+      const id = document.getElementById('edit-id').value;
+      const payload = {
+        category: document.getElementById('edit-category').value,
+        amount: Number(document.getElementById('edit-amount').value)
+      };
+
+      const res = await fetch(`/api/admin/expenses/${id}`, {
+        method: 'PUT',
+        headers: { 'Content-Type': 'application/json', 'Authorization': 'Bearer ' + getToken() },
+        body: JSON.stringify(payload)
+      });
+      const data = await res.json();
+      
+      if (res.ok) {
+        closeEditModal();
+        loadExpenses();
+      } else {
+        statusEl.textContent = data.message;
+        statusEl.className = 'text-xs text-red-500 mt-2';
+      }
+    });
+
+    // Delete
+    async function deleteExpense(id) {
+      if (!confirm('Hapus pengeluaran ini?')) return;
+      await fetch(`/api/admin/expenses/${id}`, {
+        method: 'DELETE',
+        headers: { 'Authorization': 'Bearer ' + getToken() }
+      });
+      loadExpenses();
+    }
+
+    // Init
+    loadOutlets();
+    loadBhpItems();
+    loadExpenses();
+  </script>
+</body>
+</html>
