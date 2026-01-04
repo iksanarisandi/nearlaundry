@@ -38,7 +38,11 @@
         </div>
         <div>
           <label class="block text-xs font-medium text-slate-600 mb-1">Nomor Nota *</label>
-          <input type="text" id="nota_number" class="w-full rounded-lg border border-slate-200 px-3 py-2 text-sm" required />
+          <div class="flex items-center gap-1">
+            <span id="nota-prefix" class="text-sm font-mono bg-slate-100 px-2 py-2 rounded-l-lg border border-r-0 border-slate-200 text-slate-600">...</span>
+            <input type="text" id="nota_sequence" maxlength="4" pattern="\d{1,4}" class="flex-1 rounded-r-lg border border-slate-200 px-3 py-2 text-sm font-mono" placeholder="001" required />
+          </div>
+          <p id="last-sequence" class="text-[10px] text-slate-500 mt-1">Terakhir: -</p>
         </div>
         <div class="grid grid-cols-2 gap-3">
           <div id="weight-wrapper">
@@ -84,6 +88,9 @@
   <script>
     function getToken() { return localStorage.getItem('token'); }
 
+    // Store nota prefix globally
+    let currentNotaPrefix = '';
+
     const processLabels = {
       cuci: '🧺 Input Cuci',
       kering: '☀️ Input Keringkan',
@@ -101,6 +108,48 @@
       cuci_sepatu: 'bg-amber-600',
       cuci_satuan: 'bg-teal-500'
     };
+
+    // Fetch nota prefix on page load
+    async function loadNotaPrefix() {
+      try {
+        const res = await fetch('/api/production/nota-prefix', {
+          headers: { 'Authorization': 'Bearer ' + getToken() }
+        });
+        if (res.ok) {
+          const data = await res.json();
+          currentNotaPrefix = data.prefix;
+          document.getElementById('nota-prefix').textContent = data.prefix;
+          // Load last sequence
+          loadLastSequence(data.prefix);
+        } else {
+          const err = await res.json();
+          document.getElementById('nota-prefix').textContent = 'ERR';
+          document.getElementById('last-sequence').textContent = err.message || 'Gagal memuat prefix';
+          document.getElementById('last-sequence').classList.add('text-red-500');
+        }
+      } catch (e) {
+        document.getElementById('nota-prefix').textContent = 'ERR';
+        document.getElementById('last-sequence').textContent = 'Gagal memuat prefix';
+        document.getElementById('last-sequence').classList.add('text-red-500');
+      }
+    }
+
+    // Fetch last sequence for current prefix
+    async function loadLastSequence(prefix) {
+      try {
+        const res = await fetch('/api/production/last-sequence?prefix=' + encodeURIComponent(prefix), {
+          headers: { 'Authorization': 'Bearer ' + getToken() }
+        });
+        if (res.ok) {
+          const data = await res.json();
+          const lastSeq = data.last_sequence || '-';
+          document.getElementById('last-sequence').textContent = 'Terakhir: ' + lastSeq;
+          document.getElementById('last-sequence').classList.remove('text-red-500');
+        }
+      } catch (e) {
+        // Ignore errors, just show default
+      }
+    }
 
     function showForm(process) {
       document.getElementById('menu-utama').classList.add('hidden');
@@ -148,11 +197,24 @@
       e.preventDefault();
       const statusEl = document.getElementById('status');
       statusEl.textContent = 'Menyimpan...';
+      statusEl.className = 'text-xs text-slate-600';
 
       const process = document.getElementById('process').value;
+      const sequence = document.getElementById('nota_sequence').value.trim();
+      
+      // Validate sequence
+      if (!/^\d{1,4}$/.test(sequence)) {
+        statusEl.textContent = 'Sequence harus berupa angka 1-4 digit';
+        statusEl.classList.add('text-red-500');
+        return;
+      }
+
+      // Combine prefix + sequence
+      const notaNumber = currentNotaPrefix + sequence;
+
       const payload = {
         customer_name: document.getElementById('customer_name').value,
-        nota_number: document.getElementById('nota_number').value,
+        nota_number: notaNumber,
         process: process,
         weight: (process === 'cuci_satuan' || process === 'cuci_sepatu') ? 0 : parseFloat(document.getElementById('weight').value),
         qty: parseInt(document.getElementById('qty').value),
@@ -176,14 +238,25 @@
           statusEl.textContent = data.message || 'Berhasil disimpan!';
           statusEl.classList.remove('text-red-500');
           statusEl.classList.add('text-green-600');
-          document.getElementById('produksi-form').reset();
-          document.getElementById('process').value = payload.process;
+          
+          // Update last sequence display
+          document.getElementById('last-sequence').textContent = 'Terakhir: ' + sequence;
+          
+          // Reset form but keep process
+          document.getElementById('customer_name').value = '';
+          document.getElementById('nota_sequence').value = '';
+          document.getElementById('weight').value = '';
+          document.getElementById('qty').value = '';
+          document.getElementById('service_price').value = '';
         }
       } catch {
         statusEl.textContent = 'Terjadi kesalahan jaringan';
         statusEl.classList.add('text-red-500');
       }
     });
+
+    // Load nota prefix on page load
+    loadNotaPrefix();
   </script>
 </body>
 </html>

@@ -34,9 +34,16 @@
       <h2 id="form-title" class="text-sm font-semibold mb-3">Tambah Outlet</h2>
       <form id="outlet-form" class="space-y-3">
         <input type="hidden" id="outlet_id" />
-        <div>
-          <label class="block text-xs font-medium text-slate-600 mb-1">Nama Outlet *</label>
-          <input type="text" id="name" class="w-full rounded-lg border border-slate-200 px-3 py-2 text-sm" required />
+        <div class="grid grid-cols-3 gap-3">
+          <div class="col-span-2">
+            <label class="block text-xs font-medium text-slate-600 mb-1">Nama Outlet *</label>
+            <input type="text" id="name" class="w-full rounded-lg border border-slate-200 px-3 py-2 text-sm" required />
+          </div>
+          <div>
+            <label class="block text-xs font-medium text-slate-600 mb-1">Kode *</label>
+            <input type="text" id="code" maxlength="5" class="w-full rounded-lg border border-slate-200 px-3 py-2 text-sm uppercase" placeholder="U2" required />
+            <p class="text-[10px] text-slate-500 mt-1">Untuk nomor nota</p>
+          </div>
         </div>
         <div>
           <label class="block text-xs font-medium text-slate-600 mb-1">Alamat</label>
@@ -67,6 +74,7 @@
         <thead>
           <tr class="text-left text-slate-500 border-b">
             <th class="py-2">ID</th>
+            <th class="py-2">Kode</th>
             <th class="py-2">Nama</th>
             <th class="py-2">Alamat</th>
             <th class="py-2">Koordinat GPS</th>
@@ -91,8 +99,10 @@
       data.forEach(o => {
         const tr = document.createElement('tr');
         const gpsText = (o.latitude && o.longitude) ? `${o.latitude}, ${o.longitude}` : '<span class="text-slate-400">Belum diset</span>';
+        const codeText = o.code ? `<span class="font-mono bg-slate-100 px-1 rounded">${o.code}</span>` : '<span class="text-slate-400">-</span>';
         tr.innerHTML = `
           <td class="py-2">${o.id}</td>
+          <td class="py-2">${codeText}</td>
           <td class="py-2">${o.name}</td>
           <td class="py-2">${o.address || '-'}</td>
           <td class="py-2 text-[10px]">${gpsText}</td>
@@ -110,10 +120,12 @@
       document.getElementById('form-title').textContent = 'Tambah Outlet';
       document.getElementById('outlet-form').reset();
       document.getElementById('outlet_id').value = '';
+      document.getElementById('code').value = '';
     }
 
     function hideForm() {
       document.getElementById('form-card').classList.add('hidden');
+      document.getElementById('status').textContent = '';
     }
 
     function editOutlet(o) {
@@ -121,10 +133,32 @@
       document.getElementById('form-title').textContent = 'Edit Outlet';
       document.getElementById('outlet_id').value = o.id;
       document.getElementById('name').value = o.name;
+      document.getElementById('code').value = o.code || '';
       document.getElementById('address').value = o.address || '';
       document.getElementById('latitude').value = o.latitude || '';
       document.getElementById('longitude').value = o.longitude || '';
     }
+
+    // Auto-suggest code when name changes (only for new outlets)
+    document.getElementById('name').addEventListener('blur', async function() {
+      const outletId = document.getElementById('outlet_id').value;
+      const codeInput = document.getElementById('code');
+      
+      // Only suggest if creating new outlet and code is empty
+      if (!outletId && !codeInput.value && this.value) {
+        try {
+          const res = await fetch('/api/admin/outlets/suggest-code?name=' + encodeURIComponent(this.value), {
+            headers: { 'Authorization': 'Bearer ' + getToken() }
+          });
+          const data = await res.json();
+          if (data.code) {
+            codeInput.value = data.code;
+          }
+        } catch (e) {
+          // Ignore errors, user can input manually
+        }
+      }
+    });
 
     function getMyLocation() {
       if (!navigator.geolocation) {
@@ -153,6 +187,7 @@
       const id = document.getElementById('outlet_id').value;
       const payload = {
         name: document.getElementById('name').value,
+        code: document.getElementById('code').value,
         address: document.getElementById('address').value,
         latitude: document.getElementById('latitude').value ? parseFloat(document.getElementById('latitude').value) : null,
         longitude: document.getElementById('longitude').value ? parseFloat(document.getElementById('longitude').value) : null
@@ -167,6 +202,7 @@
       });
       const data = await res.json();
       document.getElementById('status').textContent = data.message;
+      document.getElementById('status').className = res.ok ? 'text-xs text-green-600' : 'text-xs text-red-500';
       if (res.ok) {
         hideForm();
         loadOutlets();

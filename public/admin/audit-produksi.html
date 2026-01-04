@@ -121,9 +121,9 @@
   </main>
 
   <!-- Modal Edit -->
-  <div id="modal-edit" class="fixed inset-0 z-50 flex items-center justify-center" style="display: none;">
-    <div class="fixed inset-0 bg-black/50" id="edit-backdrop"></div>
-    <div class="relative bg-white rounded-lg shadow-xl w-full max-w-md mx-4 p-5 z-10">
+  <div id="modal-edit" style="display: none; position: fixed; top: 0; left: 0; right: 0; bottom: 0; background: rgba(0,0,0,0.5); z-index: 9999;">
+    <div id="edit-backdrop" style="position: fixed; top: 0; left: 0; right: 0; bottom: 0; display: flex; align-items: center; justify-content: center; padding: 16px;">
+      <div style="background: white; border-radius: 8px; padding: 20px; width: 100%; max-width: 400px; box-shadow: 0 4px 20px rgba(0,0,0,0.3);">
       <h3 class="text-base font-semibold mb-3">Edit Data Produksi</h3>
       <form id="edit-form" class="space-y-3">
         <input type="hidden" id="edit-id" />
@@ -166,18 +166,22 @@
           <button type="submit" class="btn-primary text-xs">Simpan</button>
         </div>
       </form>
+      </div>
     </div>
   </div>
 
   <!-- Modal History -->
-  <div id="modal-history" class="fixed inset-0 z-50 flex items-center justify-center" style="display: none;">
-    <div class="fixed inset-0 bg-black/50" id="history-backdrop"></div>
-    <div class="relative bg-white rounded-lg shadow-xl w-full max-w-lg mx-4 p-5 z-10 max-h-[80vh] overflow-y-auto">
-      <h3 class="text-base font-semibold mb-3">Riwayat Perubahan</h3>
-      <div id="history-content" class="text-xs"></div>
-      <div class="flex justify-end pt-3">
-        <button id="btn-close-history" class="btn-secondary text-xs">Tutup</button>
+  <div id="modal-history" style="display: none; position: fixed; top: 0; left: 0; right: 0; bottom: 0; background: rgba(0,0,0,0.5); z-index: 9999;">
+    <div id="history-backdrop" style="position: fixed; top: 0; left: 0; right: 0; bottom: 0; display: flex; align-items: center; justify-content: center; padding: 16px;">
+      <div style="background: white; border-radius: 8px; padding: 20px; width: 100%; max-width: 500px; max-height: 80vh; overflow-y: auto; box-shadow: 0 4px 20px rgba(0,0,0,0.3);">
+        <h3 class="text-base font-semibold mb-3">Riwayat Perubahan</h3>
+        <div id="history-content" class="text-xs"></div>
+        <div class="flex justify-end pt-3">
+          <button id="btn-close-history" class="btn-secondary text-xs">Tutup</button>
+        </div>
       </div>
+    </div>
+  </div>
     </div>
   </div>
 

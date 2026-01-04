@@ -1,11 +1,61 @@
 import { Hono } from 'hono';
 import type { Env } from '../../index';
 import { authMiddleware, requireRole } from '../../_utils/auth';
-import { getTodayWib, getWibDateBoundaries, getWibDateFromTimestamp } from '../../_utils/timezone';
+import { getTodayWib, getWibDateFromTimestamp, getNowWib } from '../../_utils/timezone';
+import { generateNotaPrefix, extractSequence } from '../../_utils/nota';
 
 const app = new Hono<{ Bindings: Env; Variables: { user: any } }>();
 
 app.use('*', authMiddleware, requireRole(['produksi', 'kurir']));
+
+// Get nota prefix for current user's outlet
+app.get('/nota-prefix', async (c) => {
+  const user = c.get('user');
+  const db = c.env.DB;
+
+  // Get outlet code for user's outlet
+  const outlet = await db.prepare('SELECT code FROM outlets WHERE id = ?').bind(user.outlet_id).first() as any;
+  
+  if (!outlet || !outlet.code) {
+    return c.json({ message: 'Kode outlet belum diset, hubungi admin' }, 400);
+  }
+
+  // Generate prefix using current WITA date
+  const now = getNowWib(); // Using WIB/WITA time
+  const prefix = generateNotaPrefix(outlet.code, now);
+
+  return c.json({
+    prefix,
+    outlet_code: outlet.code,
+    month: prefix.split('.')[1].slice(0, 3),
+    year: prefix.split('.')[1].slice(3, 5)
+  });
+});
+
+// Get last sequence for a given prefix
+app.get('/last-sequence', async (c) => {
+  const { prefix } = c.req.query();
+  const user = c.get('user');
+  const db = c.env.DB;
+
+  if (!prefix) {
+    return c.json({ message: 'Parameter prefix wajib diisi' }, 400);
+  }
+
+  // Find last nota number with this prefix in user's outlet
+  const result = await db.prepare(
+    `SELECT nota_number FROM production 
+     WHERE outlet_id = ? AND nota_number LIKE ? 
+     ORDER BY nota_number DESC LIMIT 1`
+  ).bind(user.outlet_id, prefix + '%').first() as any;
+
+  if (!result) {
+    return c.json({ last_sequence: null, prefix });
+  }
+
+  const sequence = extractSequence(result.nota_number);
+  return c.json({ last_sequence: sequence, prefix });
+});
 
 app.post('/', async (c) => {
   const { customer_name, nota_number, process, weight, qty, service_price } = await c.req.json();
