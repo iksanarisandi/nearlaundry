@@ -33,65 +33,6 @@
       <button id="btn-new" class="btn-secondary md:w-auto">User baru</button>
     </div>
 
-    <div class="card mb-4 hidden" id="form-card">
-      <h2 class="text-sm font-semibold mb-2" id="form-title">User baru</h2>
-      <form id="user-form" class="space-y-3">
-        <input type="hidden" id="user_id" />
-        <div class="grid grid-cols-1 md:grid-cols-2 gap-3">
-          <div>
-            <label class="block text-xs font-medium text-slate-600 mb-1">Nama</label>
-            <input type="text" id="name" class="w-full rounded-lg border border-slate-200 px-3 py-2 text-sm" required />
-          </div>
-          <div>
-            <label class="block text-xs font-medium text-slate-600 mb-1">Email</label>
-            <input type="email" id="email" class="w-full rounded-lg border border-slate-200 px-3 py-2 text-sm" required />
-          </div>
-        </div>
-        <div class="grid grid-cols-1 md:grid-cols-2 gap-3">
-          <div>
-            <label class="block text-xs font-medium text-slate-600 mb-1">Role</label>
-            <select id="role" class="w-full rounded-lg border border-slate-200 px-3 py-2 text-sm" required>
-              <option value="">Pilih role</option>
-              <option value="admin">Admin</option>
-              <option value="gudang">Gudang</option>
-              <option value="produksi">Produksi</option>
-              <option value="kurir">Kurir</option>
-            </select>
-          </div>
-          <div>
-            <label class="block text-xs font-medium text-slate-600 mb-1">Outlet</label>
-            <select id="outlet_id" class="w-full rounded-lg border border-slate-200 px-3 py-2 text-sm">
-              <option value="">Tanpa outlet</option>
-            </select>
-          </div>
-        </div>
-        <div class="grid grid-cols-1 md:grid-cols-2 gap-3">
-          <div>
-            <label class="block text-xs font-medium text-slate-600 mb-1">Tanggal Mulai Kerja</label>
-            <input type="date" id="join_date" class="w-full rounded-lg border border-slate-200 px-3 py-2 text-sm" />
-            <p class="text-[10px] text-slate-500 mt-1">Untuk perhitungan masa kerja & tunjangan</p>
-          </div>
-          <div>
-            <label class="block text-xs font-medium text-slate-600 mb-1">No. Telepon (WhatsApp)</label>
-            <input type="tel" id="phone" class="w-full rounded-lg border border-slate-200 px-3 py-2 text-sm" placeholder="08xxxxxxxxxx" />
-            <p class="text-[10px] text-slate-500 mt-1">Format: 08xxx, +62xxx, atau 62xxx</p>
-          </div>
-        </div>
-        <div class="grid grid-cols-1 md:grid-cols-2 gap-3">
-          <div id="password-wrapper">
-            <label class="block text-xs font-medium text-slate-600 mb-1">Kata sandi (opsional)</label>
-            <input type="password" id="password" class="w-full rounded-lg border border-slate-200 px-3 py-2 text-sm" placeholder="Kosongkan untuk default" />
-          </div>
-        </div>
-        <p class="text-[11px] text-slate-500">Jika kata sandi dikosongkan, sistem akan menggunakan default <span class="font-mono">laundry123</span>.</p>
-        <p id="form-status" class="text-xs text-slate-600"></p>
-        <div class="flex gap-2 justify-end">
-          <button type="button" id="btn-cancel" class="btn-secondary bg-slate-400">Batal</button>
-          <button type="submit" class="btn-primary md:w-auto">Simpan</button>
-        </div>
-      </form>
-    </div>
-
     <div class="card">
       <div class="text-xs text-slate-500 mb-1">Daftar User</div>
       <table class="w-full text-xs mt-1">
@@ -112,12 +53,74 @@
     </div>
   </main>
 
+  <!-- Modal Edit/Tambah User -->
+  <div id="modal-user" style="display: none; position: fixed; top: 0; left: 0; right: 0; bottom: 0; background: rgba(0,0,0,0.5); z-index: 9999;">
+    <div id="user-backdrop" style="position: fixed; top: 0; left: 0; right: 0; bottom: 0; display: flex; align-items: center; justify-content: center; padding: 16px;">
+      <div style="background: white; border-radius: 8px; padding: 20px; width: 100%; max-width: 500px; max-height: 80vh; overflow-y: auto; box-shadow: 0 4px 20px rgba(0,0,0,0.3);">
+        <h3 class="text-base font-semibold mb-3" id="form-title">User baru</h3>
+        <form id="user-form" class="space-y-3">
+          <input type="hidden" id="user_id" />
+          <div class="grid grid-cols-1 md:grid-cols-2 gap-3">
+            <div>
+              <label class="block text-xs font-medium text-slate-600 mb-1">Nama</label>
+              <input type="text" id="name" class="w-full rounded-lg border border-slate-200 px-3 py-2 text-sm" required />
+            </div>
+            <div>
+              <label class="block text-xs font-medium text-slate-600 mb-1">Email</label>
+              <input type="email" id="email" class="w-full rounded-lg border border-slate-200 px-3 py-2 text-sm" required />
+            </div>
+          </div>
+          <div class="grid grid-cols-1 md:grid-cols-2 gap-3">
+            <div>
+              <label class="block text-xs font-medium text-slate-600 mb-1">Role</label>
+              <select id="role" class="w-full rounded-lg border border-slate-200 px-3 py-2 text-sm" required>
+                <option value="">Pilih role</option>
+                <option value="admin">Admin</option>
+                <option value="gudang">Gudang</option>
+                <option value="produksi">Produksi</option>
+                <option value="kurir">Kurir</option>
+              </select>
+            </div>
+            <div>
+              <label class="block text-xs font-medium text-slate-600 mb-1">Outlet</label>
+              <select id="outlet_id" class="w-full rounded-lg border border-slate-200 px-3 py-2 text-sm">
+                <option value="">Tanpa outlet</option>
+              </select>
+            </div>
+          </div>
+          <div class="grid grid-cols-1 md:grid-cols-2 gap-3">
+            <div>
+              <label class="block text-xs font-medium text-slate-600 mb-1">Tanggal Mulai Kerja</label>
+              <input type="date" id="join_date" class="w-full rounded-lg border border-slate-200 px-3 py-2 text-sm" />
+              <p class="text-[10px] text-slate-500 mt-1">Untuk perhitungan masa kerja & tunjangan</p>
+            </div>
+            <div>
+              <label class="block text-xs font-medium text-slate-600 mb-1">No. Telepon (WhatsApp)</label>
+              <input type="tel" id="phone" class="w-full rounded-lg border border-slate-200 px-3 py-2 text-sm" placeholder="08xxxxxxxxxx" />
+              <p class="text-[10px] text-slate-500 mt-1">Format: 08xxx, +62xxx, atau 62xxx</p>
+            </div>
+          </div>
+          <div id="password-wrapper">
+            <label class="block text-xs font-medium text-slate-600 mb-1">Kata sandi (opsional)</label>
+            <input type="password" id="password" class="w-full rounded-lg border border-slate-200 px-3 py-2 text-sm" placeholder="Kosongkan untuk default" />
+            <p class="text-[10px] text-slate-500 mt-1">Jika dikosongkan, sistem akan menggunakan default <span class="font-mono">laundry123</span>.</p>
+          </div>
+          <p id="form-status" class="text-xs text-slate-600"></p>
+          <div class="flex justify-end gap-2 pt-3">
+            <button type="button" onclick="closeUserModal()" class="btn-secondary text-xs">Batal</button>
+            <button type="submit" class="btn-primary text-xs">Simpan</button>
+          </div>
+        </form>
+      </div>
+    </div>
+  </div>
+
   <script>
     function getToken() {
       return localStorage.getItem('token');
     }
 
-    const formCard = document.getElementById('form-card');
+    const modal = document.getElementById('modal-user');
     const formTitle = document.getElementById('form-title');
     const form = document.getElementById('user-form');
     const listStatus = document.getElementById('list-status');
@@ -125,6 +128,21 @@
     
     // Store outlets data globally
     let outletsData = [];
+
+    // Modal functions
+    function openUserModal() {
+      modal.style.display = 'block';
+    }
+
+    function closeUserModal() {
+      modal.style.display = 'none';
+      formStatus.textContent = '';
+    }
+
+    // Close on backdrop click
+    document.getElementById('user-backdrop').addEventListener('click', (e) => {
+      if (e.target === e.currentTarget) closeUserModal();
+    });
 
     // Load outlets for dropdown
     async function loadOutlets() {
@@ -155,11 +173,8 @@
       document.getElementById('phone').value = '';
       document.getElementById('password-wrapper').classList.remove('hidden');
       formTitle.textContent = 'User baru';
-      formCard.classList.remove('hidden');
-    });
-
-    document.getElementById('btn-cancel').addEventListener('click', () => {
-      formCard.classList.add('hidden');
+      formStatus.textContent = '';
+      openUserModal();
     });
 
     async function loadUsers() {
@@ -222,7 +237,8 @@
         document.getElementById('join_date').value = target.getAttribute('data-join') || '';
         document.getElementById('password-wrapper').classList.add('hidden');
         formTitle.textContent = 'Edit user';
-        formCard.classList.remove('hidden');
+        formStatus.textContent = '';
+        openUserModal();
       }
 
       if (action === 'reset') {
@@ -274,7 +290,7 @@
           formStatus.textContent = data.message || 'Gagal menyimpan user';
         } else {
           formStatus.textContent = data.message || 'User tersimpan';
-          formCard.classList.add('hidden');
+          closeUserModal();
           loadUsers();
         }
       } catch {
